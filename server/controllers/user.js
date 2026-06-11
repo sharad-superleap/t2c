@@ -129,3 +129,81 @@ export const loginUser = async (req, res) => {
             )
     }
 }
+
+export const getLoggedInUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+        if (!user) {
+            return res.status(404)
+                .json({
+                    success: false,
+                    message: "No logged in user found."
+                })
+        }
+
+        return res.status(200)
+            .json({
+                success: true,
+                message: "logged in user fetched successfully.",
+                user
+            })
+
+    } catch (err) {
+        return res.status(500)
+            .json({
+                success: false,
+                message: 'Error while fetching the logged in user.'
+            })
+    }
+}
+
+export const updateLoggedInUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+
+        if (!user) {
+            return res.status(404)
+                .json({
+                    success: false,
+                    message: "user not found."
+                })
+        }
+
+        // take the new data from req.body
+        const { firstName, lastName, phone, email, password, address } = req.body;
+
+        const updateUser = { ...req.body };
+        if (updateUser.password) {
+            const hashedPassword = await bcrypt.hash(updatedUser, 10);
+        }
+
+        const updatedUser =
+            await User.findByIdAndUpdate(
+                req.user.userId,
+                updateUser
+            ).select("-password");
+
+
+        if (!updatedUser) {
+            return res.status(400)
+                .json({
+                    success: false,
+                    message: "user update failed."
+                })
+        }
+
+        return res.status(200)
+            .json({
+                success: true,
+                message: "Profile Updated Successfully.",
+                user: updatedUser
+            });
+
+    } catch (err) {
+        return res.status(500)
+            .json({
+                success: false,
+                message: "Error while updating the user."
+            })
+    }
+}
