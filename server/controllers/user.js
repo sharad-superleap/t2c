@@ -1,4 +1,3 @@
-import express from "express";
 import { User } from "../models/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -159,28 +158,29 @@ export const getLoggedInUser = async (req, res) => {
 
 export const updateLoggedInUser = async (req, res) => {
     try {
-        const user = await User.findById(req.user.userId);
-
-        if (!user) {
-            return res.status(404)
-                .json({
-                    success: false,
-                    message: "user not found."
-                })
-        }
-
         // take the new data from req.body
         const { firstName, lastName, phone, email, password, address } = req.body;
 
-        const updateUser = { ...req.body };
-        if (updateUser.password) {
-            const hashedPassword = await bcrypt.hash(updatedUser, 10);
+        const updateUser = {};
+
+        if (firstName) updateUser.firstName = firstName;
+        if (lastName) updateUser.lastName = lastName;
+        if (phone) updateUser.phone = phone;
+        if (email) updateUser.email = email;
+        if (address) updateUser.address = address;
+
+        if (password) {
+            updateUser.password = await bcrypt.hash(password, 10);
         }
 
         const updatedUser =
             await User.findByIdAndUpdate(
                 req.user.userId,
-                updateUser
+                updateUser,
+                {
+                    new: true,
+                    runValidators: true
+                }
             ).select("-password");
 
 
@@ -188,7 +188,7 @@ export const updateLoggedInUser = async (req, res) => {
             return res.status(400)
                 .json({
                     success: false,
-                    message: "user update failed."
+                    message: "User update failed."
                 })
         }
 

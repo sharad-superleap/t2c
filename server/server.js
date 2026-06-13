@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./db/connectDb.js";
 import userRouter from "./routes/user.js";
+import pickupRouter from "./routes/pickup.js";
 dotenv.config();
 
 
@@ -17,6 +18,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/pickups", pickupRouter);
 
 connectDB().then(() => {
     app.listen(3000, () => {
