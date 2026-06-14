@@ -1,5 +1,6 @@
 import { Pickup } from "../models/pickup.js";
 import { User } from "../models/user.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
 
 export const registerPickup = async (req, res) => {
     try {

@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+
+  --color-t2c-50: #f0fdf6;
+  --color-t2c-100: #dcfce9;
+  --color-t2c-200: #bbf7d4;
+  --color-t2c-300: #86efad;
+  --color-t2c-400: #4ade80;
+  --color-t2c-500: #22c55e;
+  --color-t2c-600: #16a34a;
+  --color-t2c-700: #15803d;
+  --color-t2c-800: #166534;
+  --color-t2c-900: #14532d;
+
+  --color-coin-400: #fbbf24;
+  --color-coin-500: #f59e0b;
+  --color-coin-600: #d97706;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-white/10 bg-white/5 backdrop-blur-md;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-t2c-400 via-emerald-300 to-coin-400 bg-clip-text text-transparent;
+  }
+
+  .hero-glow {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 197, 94, 0.25), transparent);
+  }
+}

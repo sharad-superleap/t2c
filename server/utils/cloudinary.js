@@ -1,4 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
+dotenv.config();
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARYCLOUDNAME,
@@ -9,13 +11,13 @@ cloudinary.config({
 export const uploadToCloudinary = async (fileBuffer, folder) => {
     return new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-            {folder},
+            { folder },
             (error, result) => {
                 if (error) reject(error)
                 else resolve(result)
             }
         )
-        .end(fileBuffer);
+            .end(fileBuffer);
     })
 }
 
