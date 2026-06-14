@@ -39,7 +39,15 @@ const pickUpSchema = new Schema({
             },
             message: "You can upload a maximum of 3 images."
         }
+    },
+    aiAnalysis: {
+        wasteType: String,
+        estimatedWeightKg: Number,
+        confidence: String,
+        description: String,
+        isRecyclable: Boolean
     }
+
 }, { timestamps: true })
 
 export const Pickup = model('Pickups', pickUpSchema);

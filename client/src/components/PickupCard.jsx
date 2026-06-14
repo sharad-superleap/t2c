@@ -80,6 +80,47 @@ export default function PickupCard({ pickup, onDelete, deleting }) {
           </p>
         )}
 
+        {pickup.aiAnalysis && (
+          <div className="mb-4 rounded-xl border border-t2c-500/20 bg-t2c-500/5 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-t2c-400">
+              AI Analysis
+            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
+
+              {pickup.aiAnalysis.wasteType && (
+                <span>
+                  🗂 Type: <strong className="capitalize">{pickup.aiAnalysis.wasteType}</strong>
+                </span>
+              )}
+
+              {pickup.aiAnalysis.estimatedWeightKg && (
+                <span>
+                  ⚖️ Weight: <strong>~{pickup.aiAnalysis.estimatedWeightKg} kg</strong>
+                </span>
+              )}
+
+              {pickup.aiAnalysis.confidence && (
+                <span>
+                  📊 Confidence: <strong className="capitalize">{pickup.aiAnalysis.confidence}</strong>
+                </span>
+              )}
+
+              {pickup.aiAnalysis.isRecyclable !== undefined && (
+                <span>
+                  ♻️ Recyclable: <strong>{pickup.aiAnalysis.isRecyclable ? "Yes" : "No"}</strong>
+                </span>
+              )}
+
+            </div>
+
+            {pickup.aiAnalysis.description && (
+              <p className="mt-2 text-xs text-slate-500 italic">
+                "{pickup.aiAnalysis.description}"
+              </p>
+            )}
+          </div>
+        )}
+
         {deletable && secondsLeft > 0 && (
           <button
             type="button"
@@ -95,3 +136,4 @@ export default function PickupCard({ pickup, onDelete, deleting }) {
     </article>
   )
 }
+  
