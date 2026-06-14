@@ -148,7 +148,7 @@ export const registerInspector = async (req, res) => {
                     id: inspector._id,
                     fullName: inspector.fullName,
                     email: inspector.email,
-                    role: "inspector",
+                    role: inspector.role,
                     status: inspector.status,
                 },
             })
