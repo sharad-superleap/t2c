@@ -24,3 +24,19 @@ export const INDIAN_STATES = [
 ]
 
 export const DELETE_WINDOW_MS = 3 * 60 * 1000
+
+export const VEHICLE_TYPES = [
+  { id: 'bike', label: 'Bike / Scooter' },
+  { id: 'cycle', label: 'Cycle' },
+  { id: 'mini_van', label: 'Mini Van' },
+  { id: 'auto', label: 'Auto Rickshaw' },
+  { id: 'pickup_truck', label: 'Pickup Truck' },
+]
+
+export const INSPECTOR_STATUS = {
+  pending: { label: 'Pending Review', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+  under_review: { label: 'Under Review', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+  approved: { label: 'Approved', color: 'bg-t2c-500/20 text-t2c-300 border-t2c-500/30' },
+  rejected: { label: 'Rejected', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  suspended: { label: 'Suspended', color: 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
+}

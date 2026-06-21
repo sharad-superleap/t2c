@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Leaf, Menu, X, Coins, LogOut, User } from 'lucide-react'
+import { Leaf, Menu, X, Coins, LogOut, User, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 
@@ -10,10 +10,19 @@ const navLinkClass = ({ isActive }) =>
       : 'text-slate-300 hover:bg-white/5 hover:text-white'
   }`
 
+const inspectorNavLinkClass = ({ isActive }) =>
+  `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    isActive
+      ? 'bg-blue-500/20 text-blue-300'
+      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+  }`
+
 export default function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, isInspector, logout } = useAuth()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const displayName = isInspector ? user?.fullName?.split(' ')[0] : user?.firstName
 
   const handleLogout = () => {
     logout()
@@ -33,7 +42,7 @@ export default function Navbar() {
               Trash<span className="text-t2c-400">2</span>Cash
             </span>
             <p className="hidden text-[10px] uppercase tracking-widest text-slate-500 sm:block">
-              Recycle · Reward · Repeat
+              {isInspector ? 'Inspector Portal' : 'Recycle · Reward · Repeat'}
             </p>
           </div>
         </Link>
@@ -43,17 +52,23 @@ export default function Navbar() {
             Home
           </NavLink>
           {user ? (
-            <>
-              <NavLink to="/dashboard" className={navLinkClass}>
+            isInspector ? (
+              <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass}>
                 Dashboard
               </NavLink>
-              <NavLink to="/schedule" className={navLinkClass}>
-                Schedule Pickup
-              </NavLink>
-              <NavLink to="/history" className={navLinkClass}>
-                History
-              </NavLink>
-            </>
+            ) : (
+              <>
+                <NavLink to="/dashboard" className={navLinkClass}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/schedule" className={navLinkClass}>
+                  Schedule Pickup
+                </NavLink>
+                <NavLink to="/history" className={navLinkClass}>
+                  History
+                </NavLink>
+              </>
+            )
           ) : (
             <>
               <a href="/#features" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">
@@ -62,6 +77,12 @@ export default function Navbar() {
               <a href="/#how-it-works" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">
                 How it Works
               </a>
+              <Link
+                to="/register/inspector"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-blue-300 hover:bg-blue-500/10 hover:text-blue-200"
+              >
+                Be an Inspector
+              </Link>
             </>
           )}
         </div>
@@ -69,17 +90,33 @@ export default function Navbar() {
         <div className="hidden items-center gap-3 md:flex">
           {user ? (
             <>
-              <div className="flex items-center gap-1.5 rounded-full border border-coin-500/30 bg-coin-500/10 px-3 py-1.5 text-sm font-semibold text-coin-400">
-                <Coins className="h-4 w-4" />
-                <span>TrashCoins</span>
-              </div>
-              <NavLink
-                to="/profile"
-                className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
-              >
-                <User className="h-4 w-4 text-t2c-400" />
-                {user.firstName}
-              </NavLink>
+              {!isInspector && (
+                <div className="flex items-center gap-1.5 rounded-full border border-coin-500/30 bg-coin-500/10 px-3 py-1.5 text-sm font-semibold text-coin-400">
+                  <Coins className="h-4 w-4" />
+                  <span>TrashCoins</span>
+                </div>
+              )}
+              {isInspector && (
+                <div className="flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-sm font-semibold text-blue-400">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span>Inspector</span>
+                </div>
+              )}
+              {!isInspector && (
+                <NavLink
+                  to="/profile"
+                  className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5"
+                >
+                  <User className="h-4 w-4 text-t2c-400" />
+                  {displayName}
+                </NavLink>
+              )}
+              {isInspector && (
+                <span className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200">
+                  <User className="h-4 w-4 text-blue-400" />
+                  {displayName}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -124,29 +161,47 @@ export default function Navbar() {
               Home
             </NavLink>
             {user ? (
-              <>
-                <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  Dashboard
-                </NavLink>
-                <NavLink to="/schedule" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  Schedule Pickup
-                </NavLink>
-                <NavLink to="/history" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  History
-                </NavLink>
-                <NavLink to="/profile" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  Profile
-                </NavLink>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="mt-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-400 hover:bg-white/5"
-                >
-                  Log out
-                </button>
-              </>
+              isInspector ? (
+                <>
+                  <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass} onClick={() => setMobileOpen(false)}>
+                    Dashboard
+                  </NavLink>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-400 hover:bg-white/5"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/schedule" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    Schedule Pickup
+                  </NavLink>
+                  <NavLink to="/history" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    History
+                  </NavLink>
+                  <NavLink to="/profile" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    Profile
+                  </NavLink>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-400 hover:bg-white/5"
+                  >
+                    Log out
+                  </button>
+                </>
+              )
             ) : (
               <>
+                <Link to="/register/inspector" className={navLinkClass({ isActive: false })} onClick={() => setMobileOpen(false)}>
+                  Be an Inspector
+                </Link>
                 <Link to="/login" className={navLinkClass({ isActive: false })} onClick={() => setMobileOpen(false)}>
                   Log in
                 </Link>

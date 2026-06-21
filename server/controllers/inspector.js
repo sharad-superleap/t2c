@@ -1,10 +1,8 @@
-import express from "express";
 import { Inspector } from "../models/inspector.js";
+import { User } from "../models/user.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-
-
 
 export const registerInspector = async (req, res) => {
     try {
@@ -30,8 +28,6 @@ export const registerInspector = async (req, res) => {
             "bankDetails.upiId": upiId,
         } = req.body;
 
-        // basic validations
-        // Basic required field check
         if (!fullName || !email || !password || !phone || !dateOfBirth) {
             return res.status(400).json({ message: "Please fill all required fields." });
         }
@@ -40,29 +36,29 @@ export const registerInspector = async (req, res) => {
             return res.status(400).json({ message: "Vehicle type is required." });
         }
 
-
-        // At least one KYC doc number required
         if (!aadhaarNumber && !panNumber) {
             return res.status(400).json({ message: "At least one KYC document (Aadhaar or PAN) is required." });
         }
 
-
-        // check duplicate
         const existingInspector = await Inspector.findOne({ email });
-
         if (existingInspector) {
-            return res.status(409)
-                .json({
-                    success: false,
-                    message: `An inspector account with this email already exists.`
-                })
+            return res.status(409).json({
+                success: false,
+                message: "An inspector account with this email already exists.",
+            });
         }
 
-        // hash the password
-        const hashedPassword = bcrypt.hash(password, 10);
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: "This email is already registered as a user. Use a different email to register as an inspector.",
+            });
+        }
 
-        // handle file uploads 
-        const files = req.files || [];
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const files = req.files || {};
 
         let profilePhotoUrl = null;
         let aadhaarFrontUrl = null;
@@ -70,9 +66,8 @@ export const registerInspector = async (req, res) => {
         let panImageUrl = null;
         let rcImageUrl = null;
 
-
         if (files.profilePhoto?.[0]) {
-            const uploaded = await uploadToCloudinary(files.profilePhoto?.[0].buffer, "inspector-profiles");
+            const uploaded = await uploadToCloudinary(files.profilePhoto[0].buffer, "inspector-profiles");
             profilePhotoUrl = uploaded.secure_url;
         }
 
@@ -96,13 +91,10 @@ export const registerInspector = async (req, res) => {
             rcImageUrl = uploaded.secure_url;
         }
 
-        // mask aadhar number before storing
         const maskedAadhaar = aadhaarNumber
             ? `XXXX-XXXX-${aadhaarNumber.toString().slice(-4)}`
             : null;
 
-
-        // create inspector
         const inspector = await Inspector.create({
             fullName,
             email,
@@ -113,7 +105,7 @@ export const registerInspector = async (req, res) => {
             role: "inspector",
             address: { street, city, state, pincode },
             serviceablePincodes: serviceablePincodes
-                ? JSON.parse(serviceablePincodes)  // sent as JSON string from FormData
+                ? JSON.parse(serviceablePincodes)
                 : [],
             kyc: {
                 aadhaar: {
@@ -140,24 +132,151 @@ export const registerInspector = async (req, res) => {
             },
         });
 
-        return res.status(201)
-            .json({
-                success: true,
-                message: `Inspector ${inspector.fullName}, registered successfully. Your account is under review.`,
-                inspector: {
-                    id: inspector._id,
-                    fullName: inspector.fullName,
-                    email: inspector.email,
-                    role: inspector.role,
-                    status: inspector.status,
-                },
-            })
-
+        return res.status(201).json({
+            success: true,
+            message: `Inspector ${inspector.fullName} registered successfully. Your account is under review.`,
+            inspector: {
+                id: inspector._id,
+                fullName: inspector.fullName,
+                email: inspector.email,
+                role: inspector.role,
+                status: inspector.status,
+            },
+        });
     } catch (err) {
-        return res.status(500)
-            .json({
-                success: false,
-                message: `Internal server error while registering as an inspector, ${err.message}`
-            })
+        return res.status(500).json({
+            success: false,
+            message: `Internal server error while registering as an inspector: ${err.message}`,
+        });
     }
-}
+};
+
+export const loginInspector = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const hasMissingField = [email, password].some((item) => item == null || item === "");
+
+        if (hasMissingField) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required.",
+            });
+        }
+
+        const existingInspector = await Inspector.findOne({ email });
+
+        if (!existingInspector) {
+            return res.status(404).json({
+                success: false,
+                message: "No inspector found with this email.",
+            });
+        }
+
+        const passwordIsCorrect = await bcrypt.compare(password, existingInspector.password);
+
+        if (!passwordIsCorrect) {
+            return res.status(400).json({
+                success: false,
+                message: "Incorrect password.",
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                userId: existingInspector._id,
+                email: existingInspector.email,
+                role: existingInspector.role,
+            },
+            process.env.JWTSECRETKEY,
+            { expiresIn: "1d" }
+        );
+
+        return res.status(200).json({
+            success: true,
+            token,
+            role: existingInspector.role,
+            message: `Hi, ${existingInspector.fullName}`,
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: `Internal server error: ${err.message}`,
+        });
+    }
+};
+
+export const getLoggedInInspector = async (req, res) => {
+    try {
+        if (req.user.role !== "inspector") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Inspector account required.",
+            });
+        }
+
+        const inspector = await Inspector.findById(req.user.userId).select("-password");
+
+        if (!inspector) {
+            return res.status(404).json({
+                success: false,
+                message: "No logged in inspector found.",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged in inspector fetched successfully.",
+            inspector,
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Error while fetching the logged in inspector.",
+        });
+    }
+};
+
+export const toggleInspectorAvailability = async (req, res) => {
+    try {
+        if (req.user.role !== "inspector") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Inspector account required.",
+            });
+        }
+
+        const inspector = await Inspector.findById(req.user.userId);
+
+        if (!inspector) {
+            return res.status(404).json({
+                success: false,
+                message: "No logged in inspector found.",
+            });
+        }
+
+        if (inspector.status !== "approved") {
+            return res.status(403).json({
+                success: false,
+                message: "Your account must be approved before you can go online.",
+            });
+        }
+
+        inspector.isAvailable = !inspector.isAvailable;
+        await inspector.save();
+
+        const updatedInspector = await Inspector.findById(inspector._id).select("-password");
+
+        return res.status(200).json({
+            success: true,
+            message: updatedInspector.isAvailable
+                ? "You are now online and can receive pickup requests."
+                : "You are now offline.",
+            inspector: updatedInspector,
+        });
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            message: "Error while updating availability.",
+        });
+    }
+};

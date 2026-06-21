@@ -23,7 +23,8 @@ export default function Login() {
 
     try {
       const data = await login(email, password)
-      navigate(from, { replace: true, state: { welcome: data.message } })
+      const redirectTo = data.role === 'inspector' ? '/inspector/dashboard' : from
+      navigate(redirectTo, { replace: true, state: { welcome: data.message } })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -96,6 +97,16 @@ export default function Login() {
             Sign up free
           </Link>
         </p>
+
+        <div className="mt-6 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
+          <p className="text-xs text-slate-400">Want to join as a pickup agent?</p>
+          <Link
+            to="/register/inspector"
+            className="mt-2 inline-block text-sm font-medium text-blue-400 hover:text-blue-300"
+          >
+            Register as an Inspector →
+          </Link>
+        </div>
       </div>
     </div>
   )

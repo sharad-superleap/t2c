@@ -1,4 +1,5 @@
 import { User } from "../models/user.js";
+import { Inspector } from "../models/inspector.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 export const registerUser = async (req, res) => {
@@ -15,7 +16,7 @@ export const registerUser = async (req, res) => {
                 })
         }
 
-        // if all fields are present mode forward.
+        // if all fields are present move forward.
 
         // 1. find whether the mail exists.
         const existingUser = await User.findOne({ email });
@@ -24,6 +25,13 @@ export const registerUser = async (req, res) => {
                 .json({
                     message: "user already exists."
                 })
+        }
+
+        const existingInspector = await Inspector.findOne({ email });
+        if (existingInspector) {
+            return res.status(409).json({
+                message: "This email is registered as an inspector. Use a different email for a user account.",
+            });
         }
 
         // 2. if not found then bcrypt the password
@@ -114,6 +122,7 @@ export const loginUser = async (req, res) => {
                 {
                     success: true,
                     token,
+                    role: existingUser.role,
                     message: `Hi, ${existingUser.firstName}`
                 }
             )

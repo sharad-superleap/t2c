@@ -1,0 +1,247 @@
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { toggleInspectorAvailability } from '../api/inspector'
+import Alert from '../components/Alert'
+import {
+  Bell,
+  CheckCircle2,
+  Clock,
+  IndianRupee,
+  MapPin,
+  Package,
+  ShieldCheck,
+  Star,
+  Truck,
+  XCircle,
+} from 'lucide-react'
+import StatCard from '../components/StatCard'
+import { INSPECTOR_STATUS } from '../utils/constants'
+
+const statusMessages = {
+  pending: 'Your application is submitted and awaiting review. You will be notified once approved.',
+  under_review: 'Our team is verifying your KYC documents. This usually takes 1–2 business days.',
+  approved: 'You are approved! Toggle availability to start receiving nearby pickup requests.',
+  rejected: 'Your application was not approved. Please contact support for more details.',
+  suspended: 'Your account is temporarily suspended. Contact support to resolve this.',
+}
+
+export default function InspectorDashboard() {
+  const { user: inspector, updateLocalUser } = useAuth()
+  const [toggling, setToggling] = useState(false)
+  const [toggleError, setToggleError] = useState('')
+
+  const status = inspector?.status || 'pending'
+  const statusMeta = INSPECTOR_STATUS[status] || INSPECTOR_STATUS.pending
+  const stats = inspector?.stats || {}
+  const isApproved = status === 'approved'
+
+  const handleToggleAvailability = async () => {
+    if (!isApproved || toggling) return
+
+    setToggleError('')
+    setToggling(true)
+
+    try {
+      const data = await toggleInspectorAvailability()
+      updateLocalUser(data.inspector)
+    } catch (err) {
+      setToggleError(err.message)
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      {/* Header */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-blue-400" />
+            <span className="text-sm font-medium text-blue-400">Inspector Portal</span>
+          </div>
+          <h1 className="font-display text-3xl font-bold">
+            Hi, {inspector?.fullName?.split(' ')[0]}! 👋
+          </h1>
+          <p className="mt-2 text-slate-400">
+            Manage pickups, track earnings, and serve your locality.
+          </p>
+        </div>
+        <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-medium ${statusMeta.color}`}>
+          {status === 'approved' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+          {statusMeta.label}
+        </span>
+      </div>
+
+      {/* Status banner */}
+      <div className={`mb-8 rounded-2xl border p-5 ${
+        isApproved
+          ? 'border-t2c-500/30 bg-t2c-500/10'
+          : 'border-amber-500/30 bg-amber-500/10'
+      }`}>
+        <p className="text-sm leading-relaxed text-slate-300">
+          {statusMessages[status]}
+        </p>
+        {inspector?.rejectionReason && (
+          <p className="mt-2 text-sm text-red-400">
+            Reason: {inspector.rejectionReason}
+          </p>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={Package}
+          label="Total Pickups"
+          value={stats.totalPickups || 0}
+          subtext={`${stats.completedPickups || 0} completed`}
+          accent="blue"
+        />
+        <StatCard
+          icon={IndianRupee}
+          label="Total Earnings"
+          value={`₹${stats.totalEarnings || 0}`}
+          subtext="Lifetime earnings"
+          accent="coin"
+        />
+        <StatCard
+          icon={Star}
+          label="Rating"
+          value={stats.rating ? stats.rating.toFixed(1) : '—'}
+          subtext={`${stats.totalRatings || 0} reviews`}
+          accent="t2c"
+        />
+        <StatCard
+          icon={Truck}
+          label="Vehicle"
+          value={inspector?.vehicle?.type?.replace('_', ' ') || '—'}
+          subtext={inspector?.vehicle?.registrationNumber || 'Not set'}
+          accent="blue"
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Availability */}
+        <div className="glass rounded-2xl p-6 lg:col-span-1">
+          <h2 className="mb-4 font-display text-lg font-semibold">Availability</h2>
+          {toggleError && (
+            <div className="mb-3">
+              <Alert type="error" message={toggleError} onClose={() => setToggleError('')} />
+            </div>
+          )}
+          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4">
+            <div>
+              <p className="font-medium text-slate-200">
+                {inspector?.isAvailable ? 'Online' : 'Offline'}
+              </p>
+              <p className="text-xs text-slate-500">
+                {isApproved
+                  ? 'Toggle when ready to accept pickups'
+                  : 'Available after approval'}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!inspector?.isAvailable}
+              aria-label={inspector?.isAvailable ? 'Go offline' : 'Go online'}
+              disabled={!isApproved || toggling}
+              onClick={handleToggleAvailability}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                inspector?.isAvailable ? 'bg-t2c-500' : 'bg-slate-600'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 block h-6 w-6 rounded-full bg-white shadow transition ${
+                  inspector?.isAvailable ? 'left-[22px]' : 'left-0.5'
+                } ${toggling ? 'opacity-70' : ''}`}
+              />
+            </button>
+          </div>
+          {!isApproved && (
+            <p className="mt-3 text-xs text-amber-400">
+              Complete verification to go online and receive pickup requests.
+            </p>
+          )}
+        </div>
+
+        {/* Nearby pickups placeholder */}
+        <div className="glass rounded-2xl p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-lg font-semibold">Nearby Pickup Requests</h2>
+            <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-400">
+              0 available
+            </span>
+          </div>
+
+          {isApproved ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 py-12 text-center">
+              <MapPin className="mb-3 h-10 w-10 text-slate-600" />
+              <p className="text-slate-400">No pickup requests in your area right now.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Go online to receive hyperlocal assignments based on your location.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 py-12 text-center">
+              <Bell className="mb-3 h-10 w-10 text-slate-600" />
+              <p className="text-slate-400">Pickup requests will appear here after approval.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Profile summary */}
+      <div className="mt-6 glass rounded-2xl p-6">
+        <h2 className="mb-4 font-display text-lg font-semibold">Your Profile</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-slate-500">Email</p>
+            <p className="mt-1 text-sm text-slate-200">{inspector?.email}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-slate-500">Phone</p>
+            <p className="mt-1 text-sm text-slate-200">{inspector?.phone}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-slate-500">Service area</p>
+            <p className="mt-1 text-sm text-slate-200">
+              {inspector?.address?.city}, {inspector?.address?.state} — {inspector?.address?.pincode}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-slate-500">KYC</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-200">
+              {inspector?.kyc?.aadhaar?.number || inspector?.kyc?.pan?.number ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-t2c-400" />
+                  Submitted
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 text-red-400" />
+                  Not submitted
+                </>
+              )}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-slate-500">Vehicle</p>
+            <p className="mt-1 text-sm capitalize text-slate-200">
+              {inspector?.vehicle?.name || inspector?.vehicle?.type?.replace('_', ' ') || '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wider text-slate-500">Payout</p>
+            <p className="mt-1 text-sm text-slate-200">
+              {inspector?.bankDetails?.upiId || inspector?.bankDetails?.accountNumber
+                ? 'Details on file'
+                : 'Not configured'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
