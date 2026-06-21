@@ -86,5 +86,4 @@ const inspectorSchema = new mongoose.Schema({
 inspectorSchema.index({ lastLocation: "2dsphere" });
 inspectorSchema.index({ status: 1 });
 
-const Inspector = mongoose.model("Inspector", inspectorSchema);
-export default Inspector;
+export const Inspector = mongoose.model("Inspector", inspectorSchema);

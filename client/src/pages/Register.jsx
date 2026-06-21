@@ -216,6 +216,18 @@ export default function Register() {
             Log in
           </Link>
         </p>
+
+        <div className="mt-8 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 text-center">
+          <p className="text-sm text-slate-300">
+            Want to earn by collecting recyclables instead?
+          </p>
+          <Link
+            to="/register/inspector"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-600/20 px-5 py-2.5 text-sm font-semibold text-blue-300 transition hover:bg-blue-600/30"
+          >
+            Register as an Inspector
+          </Link>
+        </div>
       </div>
     </div>
   )

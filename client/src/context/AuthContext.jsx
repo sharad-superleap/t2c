@@ -1,27 +1,42 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { loginUser as loginApi, getLoggedInUser, registerUser as registerApi } from '../api/auth'
+import { loginUser as loginUserApi, getLoggedInUser, registerUser as registerApi } from '../api/auth'
+import { loginInspector as loginInspectorApi, getLoggedInInspector } from '../api/inspector'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [role, setRole] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchUser = useCallback(async () => {
     const token = localStorage.getItem('t2c_token')
+    const storedRole = localStorage.getItem('t2c_role')
+
     if (!token) {
       setUser(null)
+      setRole(null)
       setLoading(false)
       return
     }
 
     try {
-      const data = await getLoggedInUser()
-      const { password, ...safeUser } = data.user || {}
-      setUser(safeUser)
+      if (storedRole === 'inspector') {
+        const data = await getLoggedInInspector()
+        const { password, ...safeInspector } = data.inspector || {}
+        setUser(safeInspector)
+        setRole('inspector')
+      } else {
+        const data = await getLoggedInUser()
+        const { password, ...safeUser } = data.user || {}
+        setUser(safeUser)
+        setRole(safeUser?.role || 'user')
+      }
     } catch {
       localStorage.removeItem('t2c_token')
+      localStorage.removeItem('t2c_role')
       setUser(null)
+      setRole(null)
     } finally {
       setLoading(false)
     }
@@ -32,10 +47,23 @@ export function AuthProvider({ children }) {
   }, [fetchUser])
 
   const login = async (email, password) => {
-    const data = await loginApi({ email, password })
-    localStorage.setItem('t2c_token', data.token)
-    await fetchUser()
-    return data
+    try {
+      const data = await loginUserApi({ email, password })
+      localStorage.setItem('t2c_token', data.token)
+      localStorage.setItem('t2c_role', data.role || 'user')
+      await fetchUser()
+      return { ...data, role: data.role || 'user' }
+    } catch (userErr) {
+      if (userErr.message !== 'No user found with the email.') {
+        throw userErr
+      }
+
+      const data = await loginInspectorApi({ email, password })
+      localStorage.setItem('t2c_token', data.token)
+      localStorage.setItem('t2c_role', 'inspector')
+      await fetchUser()
+      return { ...data, role: 'inspector' }
+    }
   }
 
   const register = async (userData) => {
@@ -45,15 +73,21 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem('t2c_token')
+    localStorage.removeItem('t2c_role')
     setUser(null)
+    setRole(null)
   }
 
   const updateLocalUser = (updatedUser) => {
     setUser(updatedUser)
   }
 
+  const isInspector = role === 'inspector'
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, fetchUser, updateLocalUser }}>
+    <AuthContext.Provider
+      value={{ user, role, loading, isInspector, login, register, logout, fetchUser, updateLocalUser }}
+    >
       {children}
     </AuthContext.Provider>
   )

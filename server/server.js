@@ -4,6 +4,7 @@ import cors from "cors";
 import connectDB from "./db/connectDb.js";
 import userRouter from "./routes/user.js";
 import pickupRouter from "./routes/pickup.js";
+import inspectorRouter from "./routes/inspector.js";
 dotenv.config();
 
 
@@ -26,6 +27,7 @@ app.use(express.json());
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/pickups", pickupRouter);
+app.use("/api/v1/inspectors", inspectorRouter);
 
 connectDB().then(() => {
     app.listen(3000, () => {

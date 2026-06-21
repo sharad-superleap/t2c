@@ -173,6 +173,29 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Inspector CTA */}
+      <section className="border-t border-white/10 px-4 py-20 sm:px-6">
+        <div className="mx-auto max-w-4xl">
+          <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-950/50 to-slate-900 p-10 text-center sm:p-14">
+            <Truck className="mx-auto mb-4 h-12 w-12 text-blue-400" />
+            <h2 className="font-display text-2xl font-bold sm:text-3xl">
+              Earn by collecting recyclables
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-slate-400">
+              Register as a Trash2Cash inspector — get nearby pickup requests,
+              earn per pickup, and help your community recycle smarter.
+            </p>
+            <Link
+              to="/register/inspector"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3.5 font-semibold text-white transition hover:from-blue-500 hover:to-indigo-500"
+            >
+              <Shield className="h-5 w-5" />
+              Register as an Inspector
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="border-t border-white/10 px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-4xl">
