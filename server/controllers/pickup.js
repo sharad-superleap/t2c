@@ -2,6 +2,7 @@ import { Pickup } from "../models/pickup.js";
 import { User } from "../models/user.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { analyzeWasteImages } from "../utils/geminiService.js";
+import pickupEmitter from "../utils/pickupEmitter.js";
 
 export const registerPickup = async (req, res) => {
     try {
@@ -54,7 +55,7 @@ export const registerPickup = async (req, res) => {
             // analyse the images using gemini ai.
             try {
                 aiAnalysis = await analyzeWasteImages(
-                   req.files
+                    req.files
                 );
             } catch (aiErr) {
                 console.error("AI analysis failed:", aiErr.message);
@@ -76,13 +77,15 @@ export const registerPickup = async (req, res) => {
             aiAnalysis
         })
 
-        return res.status(201)
+        res.status(201)
             .json({
                 success: true,
                 message: `Pickup Created Successfully, ${pickup._id}`,
                 pickupId: pickup._id,
                 aiAnalysis
             })
+
+        pickupEmitter.emit('pickup:registered', pickup);
 
     } catch (err) {
         return res.status(500)
