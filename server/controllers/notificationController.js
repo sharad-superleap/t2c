@@ -8,7 +8,7 @@ export async function getNotifications(req, res) {
         .lean()
 
     const unreadCount = await Notification.countDocuments({
-        recipient: req.user._id,
+        recipient: req.user.userId,
         isRead: false,
     });
 

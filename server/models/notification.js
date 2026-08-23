@@ -9,7 +9,7 @@ const notificationSchema = new mongoose.Schema({
     recipient: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        refPath: 'Inspector',
+        refPath: 'recipientModel',
         index: true,
     },
     type: {

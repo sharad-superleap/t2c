@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Leaf, Menu, X, Coins, LogOut, User, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import NotificationsDropdown from './NotificationsDropdown'
 
 const navLinkClass = ({ isActive }) =>
   `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -117,6 +118,9 @@ export default function Navbar() {
                   {displayName}
                 </span>
               )}
+              {isInspector && (
+                <NotificationsDropdown />
+              )}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -144,14 +148,17 @@ export default function Navbar() {
           )}
         </div>
 
-        <button
-          type="button"
-          className="rounded-lg p-2 text-slate-300 md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {user && isInspector && <NotificationsDropdown />}
+          <button
+            type="button"
+            className="rounded-lg p-2 text-slate-300"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </nav>
 
       {mobileOpen && (
