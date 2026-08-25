@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { toggleInspectorAvailability } from '../api/inspector'
+import { getNotifications } from '../api/notifications'
+import { updatePickupStatus } from '../api/pickups'
 import Alert from '../components/Alert'
 import {
   Bell,
@@ -13,6 +15,8 @@ import {
   Star,
   Truck,
   XCircle,
+  Check,
+  Trash2,
 } from 'lucide-react'
 import StatCard from '../components/StatCard'
 import { INSPECTOR_STATUS } from '../utils/constants'
@@ -29,6 +33,9 @@ export default function InspectorDashboard() {
   const { user: inspector, updateLocalUser } = useAuth()
   const [toggling, setToggling] = useState(false)
   const [toggleError, setToggleError] = useState('')
+  const [dashboardMessage, setDashboardMessage] = useState('')
+  const [recentPickups, setRecentPickups] = useState([])
+  const [loadingPickups, setLoadingPickups] = useState(true)
 
   const status = inspector?.status || 'pending'
   const statusMeta = INSPECTOR_STATUS[status] || INSPECTOR_STATUS.pending
@@ -49,6 +56,45 @@ export default function InspectorDashboard() {
     } finally {
       setToggling(false)
     }
+  }
+
+  useEffect(() => {
+    async function loadRecentPickups() {
+      if (!isApproved) {
+        setLoadingPickups(false)
+        return
+      }
+      try {
+        const data = await getNotifications()
+        if (data.success && data.items) {
+          // Filter notifications that have a populated pickup and take top 3
+          const pickups = data.items
+            .filter((n) => n.pickup)
+            .slice(0, 3)
+          setRecentPickups(pickups)
+        }
+      } catch (error) {
+        console.error('Failed to load recent pickups', error)
+      } finally {
+        setLoadingPickups(false)
+      }
+    }
+    loadRecentPickups()
+  }, [isApproved])
+
+  const handleAcceptPickup = async (pickupId) => {
+    try {
+      await updatePickupStatus(pickupId)
+      setRecentPickups((prev) => prev.filter((p) => p.pickup?._id !== pickupId))
+      setDashboardMessage('Pickup successfully assigned to you!')
+      setTimeout(() => setDashboardMessage(''), 5000)
+    } catch (err) {
+      setToggleError(err.message)
+    }
+  }
+
+  const handleRemovePickupView = (notificationId) => {
+    setRecentPickups((prev) => prev.filter((n) => n._id !== notificationId))
   }
 
   return (
@@ -72,6 +118,12 @@ export default function InspectorDashboard() {
           {statusMeta.label}
         </span>
       </div>
+
+      {dashboardMessage && (
+        <div className="mb-6">
+          <Alert type="success" message={dashboardMessage} onClose={() => setDashboardMessage('')} />
+        </div>
+      )}
 
       {/* Status banner */}
       <div className={`mb-8 rounded-2xl border p-5 ${
@@ -166,27 +218,74 @@ export default function InspectorDashboard() {
           )}
         </div>
 
-        {/* Nearby pickups placeholder */}
+        {/* Nearby pickups */}
         <div className="glass rounded-2xl p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold">Nearby Pickup Requests</h2>
             <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-400">
-              0 available
+              {recentPickups.length} available
             </span>
           </div>
 
-          {isApproved ? (
+          {!isApproved ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 py-12 text-center">
+              <Bell className="mb-3 h-10 w-10 text-slate-600" />
+              <p className="text-slate-400">Pickup requests will appear here after approval.</p>
+            </div>
+          ) : loadingPickups ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-sm text-slate-400">Loading requests...</p>
+            </div>
+          ) : recentPickups.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 py-12 text-center">
               <MapPin className="mb-3 h-10 w-10 text-slate-600" />
               <p className="text-slate-400">No pickup requests in your area right now.</p>
               <p className="mt-1 text-xs text-slate-500">
-                Go online to receive hyperlocal assignments based on your location.
+                You will be notified when new requests are available.
               </p>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 py-12 text-center">
-              <Bell className="mb-3 h-10 w-10 text-slate-600" />
-              <p className="text-slate-400">Pickup requests will appear here after approval.</p>
+            <div className="grid gap-3">
+              {recentPickups.map((item) => {
+                const { pickup } = item
+                return (
+                  <div key={item._id} className="flex items-start justify-between rounded-xl border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10">
+                    <div>
+                      <div className="mb-1 flex flex-wrap gap-2">
+                        {pickup.wasteTypes?.map((type) => (
+                          <span key={type} className="rounded border border-t2c-500/30 bg-t2c-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-t2c-400">
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="font-medium text-slate-200">
+                        {pickup.address?.street}, {pickup.address?.city}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Registered {new Date(item.createdAt).toLocaleString(undefined, {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => handleAcceptPickup(pickup._id)}
+                        className="flex items-center justify-center rounded-lg bg-t2c-500/20 p-2 text-t2c-400 hover:bg-t2c-500 hover:text-white transition-colors"
+                        title="Accept Pickup"
+                      >
+                        <Check className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleRemovePickupView(item._id)}
+                        className="flex items-center justify-center rounded-lg bg-red-500/10 p-2 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                        title="Remove from view"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

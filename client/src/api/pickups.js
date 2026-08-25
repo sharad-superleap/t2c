@@ -23,3 +23,8 @@ export async function deletePickup(pickupId) {
   const { data } = await api.delete(`/pickups/${pickupId}`)
   return data
 }
+
+export async function updatePickupStatus(pickupId) {
+  const { data } = await api.patch(`/pickups/${pickupId}`)
+  return data
+}

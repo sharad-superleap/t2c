@@ -196,3 +196,32 @@ export const deletePickup = async (req, res) => {
             })
     }
 }
+
+export const updatePickup = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { pickupId } = req.params;
+
+        if (!userId) {
+            return res.status(401)
+                .json({ message: "Unauthorized." });
+        }
+
+        const pickup = await Pickup.findByIdAndUpdate(pickupId, {
+            status: "assigned"
+        })
+
+        return res.status(200)
+            .json({
+                success: true,
+                message: `Pickup assigned successfully.`
+            })
+
+    } catch (err) {
+        return res.status(500)
+            .json({
+                success: false,
+                message: `Internal Server Error, ${err.message}`
+            })
+    }
+}

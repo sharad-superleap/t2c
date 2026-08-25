@@ -1,5 +1,5 @@
 import express from "express";
-import { deletePickup, getPickUpsHistoryByUserId, registerPickup } from "../controllers/pickup.js";
+import { deletePickup, getPickUpsHistoryByUserId, registerPickup, updatePickup } from "../controllers/pickup.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/multer.js";
 
@@ -13,6 +13,8 @@ router.route("/")
 
 // delete route
 router.route("/:pickupId")
-    .delete(authMiddleware, deletePickup);
+    .delete(authMiddleware, deletePickup)
+    .patch(authMiddleware, updatePickup);
+
 
 export default router;
