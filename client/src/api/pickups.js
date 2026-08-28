@@ -28,3 +28,8 @@ export async function updatePickupStatus(pickupId) {
   const { data } = await api.patch(`/pickups/${pickupId}`)
   return data
 }
+
+export async function verifyPickupOtp(pickupId, otp) {
+  const { data } = await api.patch(`/pickups/${pickupId}/verify-otp`, { otp })
+  return data
+}

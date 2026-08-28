@@ -209,7 +209,7 @@ export const updatePickup = async (req, res) => {
 
         const pickup = await Pickup.findOneAndUpdate(
             { _id: pickupId, status: "pending" },   // only matches if still unassigned
-            { $set: { status: "assigned", inspectorId } },
+            { $set: { status: "assigned" } },
             { new: true }
         );
 
@@ -226,6 +226,63 @@ export const updatePickup = async (req, res) => {
             .json({
                 success: true,
                 message: `Pickup assigned successfully.`
+            })
+
+    } catch (err) {
+        return res.status(500)
+            .json({
+                success: false,
+                message: `Internal Server Error, ${err.message}`
+            })
+    }
+}
+
+export const updatePickupStatusUsingOtp = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { pickupId } = req.params;
+        const { otp } = req.body;
+
+        if (!otp) return res.status(400).json({ success: false, message: "OTP is required." });
+
+        if (!userId) {
+            return res.status(401)
+                .json({ message: "Unauthorized." });
+        }
+
+        // Scope to THIS inspector's assigned pickup, and pull the creator's otp.
+        const pickup = await Pickup.findOne(
+            { _id: pickupId, status: "assigned" }
+        ).populate("user", "otp");
+
+        // const pickup = await Pickup.findOneAndUpdate(
+        //     { _id: pickupId, status: "assigned" },
+        //     { $set: { status: "picked_up" } },
+        //     { new: true }
+        // );
+
+        if (!pickup) {
+            return res.status(404)
+                .json({ message: "Pickup not found." });
+        }
+
+        if (String(pickup.user?.otp) !== String(otp)) {
+            return res.status(400).json({ success: false, message: "Invalid OTP." });
+        }
+
+        // Guarded flip so it can only go assigned -> picked_up once.
+        const updated = await Pickup.findOneAndUpdate(
+            { _id: pickupId, status: "assigned" },
+            { $set: { status: "picked_up" } },
+            { new: true }
+        );
+
+        if (!updated) return res.status(409).json({ success: false, message: "Pickup already updated." });
+
+        return res.status(200)
+            .json({
+                success: true,
+                message: `Pickup marked as picked up.`
             })
 
     } catch (err) {

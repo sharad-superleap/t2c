@@ -3,7 +3,7 @@ import { model, Schema } from "mongoose";
 const pickUpSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Users",
         required: true
     },
     address: {

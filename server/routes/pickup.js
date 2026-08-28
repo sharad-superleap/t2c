@@ -1,5 +1,5 @@
 import express from "express";
-import { deletePickup, getPickUpsHistoryByUserId, registerPickup, updatePickup } from "../controllers/pickup.js";
+import { deletePickup, getPickUpsHistoryByUserId, registerPickup, updatePickup, updatePickupStatusUsingOtp } from "../controllers/pickup.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/multer.js";
 
@@ -15,6 +15,9 @@ router.route("/")
 router.route("/:pickupId")
     .delete(authMiddleware, deletePickup)
     .patch(authMiddleware, updatePickup);
+
+router.route("/:pickupId/verify-otp")
+    .patch(authMiddleware, updatePickupStatusUsingOtp);
 
 
 export default router;

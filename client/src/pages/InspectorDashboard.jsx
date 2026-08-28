@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { toggleInspectorAvailability } from '../api/inspector'
 import { getNotifications } from '../api/notifications'
-import { updatePickupStatus } from '../api/pickups'
+import { updatePickupStatus, verifyPickupOtp } from '../api/pickups'
 import Alert from '../components/Alert'
 import {
   Bell,
@@ -29,6 +29,7 @@ const statusMessages = {
   suspended: 'Your account is temporarily suspended. Contact support to resolve this.',
 }
 
+
 export default function InspectorDashboard() {
   const { user: inspector, updateLocalUser } = useAuth()
   const [toggling, setToggling] = useState(false)
@@ -36,6 +37,13 @@ export default function InspectorDashboard() {
   const [dashboardMessage, setDashboardMessage] = useState('')
   const [recentPickups, setRecentPickups] = useState([])
   const [loadingPickups, setLoadingPickups] = useState(true)
+
+
+  const [currentPickup, setCurrentPickup] = useState(null)
+  const [showOtpEntry, setShowOtpEntry] = useState(false)
+  const [otpValue, setOtpValue] = useState('')
+  const [otpError, setOtpError] = useState('')
+  const [verifying, setVerifying] = useState(false)
 
   const status = inspector?.status || 'pending'
   const statusMeta = INSPECTOR_STATUS[status] || INSPECTOR_STATUS.pending
@@ -82,11 +90,45 @@ export default function InspectorDashboard() {
     loadRecentPickups()
   }, [isApproved])
 
-  const handleAcceptPickup = async (pickupId) => {
+  // const handleAcceptPickup = async (pickupId) => {
+  //   try {
+  //     await updatePickupStatus(pickupId)
+  //     setRecentPickups((prev) => prev.filter((p) => p.pickup?._id !== pickupId))
+  //     setDashboardMessage('Pickup successfully assigned to you!')
+  //     setTimeout(() => setDashboardMessage(''), 5000)
+  //   } catch (err) {
+  //     setToggleError(err.message)
+  //   }
+  // }
+
+  const handleVerifyOtp = async () => {
+    if (otpValue.length !== 6 || verifying) return
+    console.log("otpvalue", otpValue);
+    setOtpError('')
+    setVerifying(true)
     try {
-      await updatePickupStatus(pickupId)
+      await verifyPickupOtp(currentPickup._id, otpValue)
+      setDashboardMessage('Pickup confirmed as picked up! 🎉')
+      setCurrentPickup(null)
+      setShowOtpEntry(false)
+      setOtpValue('')
+      setTimeout(() => setDashboardMessage(''), 5000)
+    } catch (err) {
+      setOtpError(err.message)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const handleAcceptPickup = async (item) => {
+    const pickupId = item.pickup?._id
+    try {
+      await updatePickupStatus(pickupId)          // pending -> assigned
       setRecentPickups((prev) => prev.filter((p) => p.pickup?._id !== pickupId))
-      setDashboardMessage('Pickup successfully assigned to you!')
+      setCurrentPickup(item.pickup)               // show it as the active pickup
+      setShowOtpEntry(false)
+      setOtpValue('')
+      setDashboardMessage('Pickup assigned! Collect the waste, then enter the user OTP to confirm.')
       setTimeout(() => setDashboardMessage(''), 5000)
     } catch (err) {
       setToggleError(err.message)
@@ -126,11 +168,10 @@ export default function InspectorDashboard() {
       )}
 
       {/* Status banner */}
-      <div className={`mb-8 rounded-2xl border p-5 ${
-        isApproved
-          ? 'border-t2c-500/30 bg-t2c-500/10'
-          : 'border-amber-500/30 bg-amber-500/10'
-      }`}>
+      <div className={`mb-8 rounded-2xl border p-5 ${isApproved
+        ? 'border-t2c-500/30 bg-t2c-500/10'
+        : 'border-amber-500/30 bg-amber-500/10'
+        }`}>
         <p className="text-sm leading-relaxed text-slate-300">
           {statusMessages[status]}
         </p>
@@ -172,6 +213,57 @@ export default function InspectorDashboard() {
           accent="blue"
         />
       </div>
+      {currentPickup && (
+        <div className="mb-8 glass rounded-2xl border border-t2c-500/30 p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold">Current Pickup</h2>
+          <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+            <div className="mb-1 flex flex-wrap gap-2">
+              {currentPickup.wasteTypes?.map((type) => (
+                <span key={type} className="rounded border border-t2c-500/30 bg-t2c-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-t2c-400">
+                  {type}
+                </span>
+              ))}
+            </div>
+            <p className="font-medium text-slate-200">
+              {currentPickup.address?.street}, {currentPickup.address?.city}
+            </p>
+
+            {!showOtpEntry ? (
+              <button
+                onClick={() => setShowOtpEntry(true)}
+                className="mt-4 rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-t2c-600"
+              >
+                Confirm Pickup
+              </button>
+            ) : (
+              <div className="mt-4">
+                <label className="text-xs uppercase tracking-wider text-slate-500">
+                  Enter user's 6-digit OTP
+                </label>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpValue}
+                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="______"
+                    className="w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center tracking-[0.3em] text-slate-100 focus:border-t2c-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={otpValue.length !== 6 || verifying}
+                    className="rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-t2c-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {verifying ? 'Verifying...' : 'Verify & Complete'}
+                  </button>
+                </div>
+                {otpError && <p className="mt-2 text-sm text-red-400">{otpError}</p>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Availability */}
@@ -200,14 +292,12 @@ export default function InspectorDashboard() {
               aria-label={inspector?.isAvailable ? 'Go offline' : 'Go online'}
               disabled={!isApproved || toggling}
               onClick={handleToggleAvailability}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                inspector?.isAvailable ? 'bg-t2c-500' : 'bg-slate-600'
-              }`}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${inspector?.isAvailable ? 'bg-t2c-500' : 'bg-slate-600'
+                }`}
             >
               <span
-                className={`absolute top-0.5 block h-6 w-6 rounded-full bg-white shadow transition ${
-                  inspector?.isAvailable ? 'left-[22px]' : 'left-0.5'
-                } ${toggling ? 'opacity-70' : ''}`}
+                className={`absolute top-0.5 block h-6 w-6 rounded-full bg-white shadow transition ${inspector?.isAvailable ? 'left-[22px]' : 'left-0.5'
+                  } ${toggling ? 'opacity-70' : ''}`}
               />
             </button>
           </div>
@@ -269,7 +359,7 @@ export default function InspectorDashboard() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => handleAcceptPickup(pickup._id)}
+                        onClick={() => handleAcceptPickup(item)}
                         className="flex items-center justify-center rounded-lg bg-t2c-500/20 p-2 text-t2c-400 hover:bg-t2c-500 hover:text-white transition-colors"
                         title="Accept Pickup"
                       >
