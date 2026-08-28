@@ -207,9 +207,20 @@ export const updatePickup = async (req, res) => {
                 .json({ message: "Unauthorized." });
         }
 
-        const pickup = await Pickup.findByIdAndUpdate(pickupId, {
-            status: "assigned"
-        })
+        const pickup = await Pickup.findOneAndUpdate(
+            { _id: pickupId, status: "pending" },   // only matches if still unassigned
+            { $set: { status: "assigned", inspectorId } },
+            { new: true }
+        );
+
+        if (!pickup) {
+            return res.status(409).json(
+                {
+                    success: false,
+                    message: "Pickup already assigned"
+                }
+            );
+        }
 
         return res.status(200)
             .json({
