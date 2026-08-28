@@ -9,6 +9,7 @@ import Register from './pages/Register'
 import RegisterInspector from './pages/RegisterInspector'
 import Dashboard from './pages/Dashboard'
 import InspectorDashboard from './pages/InspectorDashboard'
+import InspectorProfile from './pages/InspectorProfile'
 import SchedulePickup from './pages/SchedulePickup'
 import PickupHistory from './pages/PickupHistory'
 import Profile from './pages/Profile'
@@ -46,6 +47,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['inspector']}>
                   <InspectorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inspector/profile"
+              element={
+                <ProtectedRoute allowedRoles={['inspector']}>
+                  <InspectorProfile />
                 </ProtectedRoute>
               }
             />

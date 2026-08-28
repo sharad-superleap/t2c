@@ -54,9 +54,14 @@ export default function Navbar() {
           </NavLink>
           {user ? (
             isInspector ? (
-              <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass}>
-                Dashboard
-              </NavLink>
+              <>
+                <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/inspector/profile" className={inspectorNavLinkClass}>
+                  Profile
+                </NavLink>
+              </>
             ) : (
               <>
                 <NavLink to="/dashboard" className={navLinkClass}>
@@ -172,6 +177,9 @@ export default function Navbar() {
                 <>
                   <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass} onClick={() => setMobileOpen(false)}>
                     Dashboard
+                  </NavLink>
+                  <NavLink to="/inspector/profile" className={inspectorNavLinkClass} onClick={() => setMobileOpen(false)}>
+                    Profile
                   </NavLink>
                   <button
                     type="button"
