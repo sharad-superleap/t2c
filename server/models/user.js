@@ -85,6 +85,10 @@ const userSchema = new Schema({
     otp: {
         type: String,
         required: true,
+    },
+    trashCoins: {
+        type: String,
+        default: "0"
     }
 });
 

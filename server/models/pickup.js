@@ -46,8 +46,12 @@ const pickUpSchema = new Schema({
         confidence: String,
         description: String,
         isRecyclable: Boolean
-    }
-
+    },
+    inspectorId: {
+        type: Schema.Types.ObjectId,
+        ref: "Inspector",
+        default: null
+    },
 }, { timestamps: true })
 
 export const Pickup = model('Pickups', pickUpSchema);

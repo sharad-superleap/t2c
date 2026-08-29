@@ -7,6 +7,9 @@ import pickupRouter from "./routes/pickup.js";
 import inspectorRouter from "./routes/inspector.js";
 import notificationRouter from "./routes/notificationRoutes.js";
 
+// Admin Controls
+import adminRouter from "./routes/admin.js";
+
 import "./utils/listeners/notifyInspectors.js";
 
 
@@ -29,6 +32,11 @@ app.use((req, res, next) => {
 
 
 app.use(express.json());
+
+
+// Admin Controls
+app.use("/api/v1/admin", adminRouter);
+
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/pickups", pickupRouter);
