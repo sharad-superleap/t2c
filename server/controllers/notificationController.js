@@ -1,7 +1,12 @@
 import { Notification } from "../models/notification.js";
 
 export async function getNotifications(req, res) {
-    const items = await Notification.find({ recipient: req.user.userId })
+    const { unreadOnly } = req.query;
+    
+    const filter = { recipient: req.user.userId };
+    if (unreadOnly === 'true') filter.isRead = false;
+
+    const items = await Notification.find(filter)
         .sort({ createdAt: -1 })
         .limit(50)
         .populate('pickup')

@@ -73,7 +73,7 @@ export default function InspectorDashboard() {
         return
       }
       try {
-        const data = await getNotifications()
+        const data = await getNotifications({ unreadOnly: true })
         if (data.success && data.items) {
           // Filter notifications that have a populated pickup and take top 3
           const pickups = data.items
@@ -89,17 +89,6 @@ export default function InspectorDashboard() {
     }
     loadRecentPickups()
   }, [isApproved])
-
-  // const handleAcceptPickup = async (pickupId) => {
-  //   try {
-  //     await updatePickupStatus(pickupId)
-  //     setRecentPickups((prev) => prev.filter((p) => p.pickup?._id !== pickupId))
-  //     setDashboardMessage('Pickup successfully assigned to you!')
-  //     setTimeout(() => setDashboardMessage(''), 5000)
-  //   } catch (err) {
-  //     setToggleError(err.message)
-  //   }
-  // }
 
   const handleVerifyOtp = async () => {
     if (otpValue.length !== 6 || verifying) return

@@ -55,7 +55,7 @@ const steps = [
 ]
 
 export default function Home() {
-  const { user, isInspector } = useAuth()
+  const { user, isInspector, isAdmin } = useAuth()
 
   return (
     <div>
@@ -91,6 +91,14 @@ export default function Home() {
                 >
                   <Truck className="h-5 w-5" />
                   Go to Inspector Dashboard
+                </Link>
+              ) : isAdmin ? (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-3.5 font-semibold text-white shadow-xl shadow-violet-500/25 transition hover:from-violet-500 hover:to-indigo-500"
+                >
+                  <Shield className="h-5 w-5" />
+                  Go to Admin Dashboard
                 </Link>
               ) : user ? (
                 <Link
@@ -182,7 +190,7 @@ export default function Home() {
       </section>
 
       {/* Inspector CTA — only shown to non-inspector visitors */}
-      {!isInspector && (
+      {!isInspector && !isAdmin && (
         <section className="border-t border-white/10 px-4 py-20 sm:px-6">
           <div className="mx-auto max-w-4xl">
             <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-950/50 to-slate-900 p-10 text-center sm:p-14">
@@ -219,11 +227,11 @@ export default function Home() {
               is a small but meaningful financial asset.
             </p>
             <Link
-              to={user ? '/schedule' : '/register'}
+              to={isAdmin ? '/dashboard' : user ? '/schedule' : '/register'}
               className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 font-semibold text-slate-900 transition hover:bg-slate-100"
             >
               <Calendar className="h-5 w-5" />
-              {user ? 'Schedule Your First Pickup' : 'Create Free Account'}
+              {isAdmin ? 'Open Admin Dashboard' : user ? 'Schedule Your First Pickup' : 'Create Free Account'}
             </Link>
           </div>
         </div>

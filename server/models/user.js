@@ -90,6 +90,6 @@ const userSchema = new Schema({
         type: String,
         default: "0"
     }
-});
+}, { timestamps: true });
 
 export const User = mongoose.model('Users', userSchema);
