@@ -99,7 +99,6 @@ export const getPickUpsHistoryByUserId = async (req, res) => {
     try {
         const userId = req.user.userId;
 
-
         if (!userId) {
             return res.status(400)
                 .json({
@@ -209,7 +208,7 @@ export const updatePickup = async (req, res) => {
 
         const pickup = await Pickup.findOneAndUpdate(
             { _id: pickupId, status: "pending" },   // only matches if still unassigned
-            { $set: { status: "assigned" } },
+            { $set: { status: "assigned", inspectorId: userId } },
             { new: true }
         );
 
@@ -290,6 +289,46 @@ export const updatePickupStatusUsingOtp = async (req, res) => {
             .json({
                 success: false,
                 message: `Internal Server Error, ${err.message}`
+            })
+    }
+}
+
+export const getPickupsPerInspector = async (req, res) => {
+    try {
+        const inspectorId = req.user.userId;
+
+        if (!inspectorId) {
+            return res.status(400)
+                .json({
+                    success: false,
+                    message: `Inspector id is required.`
+                })
+        }
+
+        const pickupsPerInspector = await Pickup.find({ inspectorId });
+
+        if(pickupsPerInspector.length === 0){
+            return res.status(200).json({
+                success: true,
+                message: `No pickups found for this inspector.`
+            })
+        }
+
+        const currentPickups = pickupsPerInspector.filter((p) => p.status === "assigned");
+        const otherPickups = pickupsPerInspector.filter((p) => p.status !== "assigned");
+
+        return res.status(200).json({
+            success: true,
+            message: `Fetched ${pickupsPerInspector.length} pickups.`,
+            currentPickups,
+            otherPickups,
+        });
+
+    } catch (error) {
+        return res.status(500)
+            .json({
+                success: false,
+                message: `Error while fetching pickups per inspector. ${error}`
             })
     }
 }

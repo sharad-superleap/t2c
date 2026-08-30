@@ -24,12 +24,17 @@ export async function deletePickup(pickupId) {
   return data
 }
 
-export async function updatePickupStatus(pickupId) {
+export async function updatePickupStatus(pickupId, inspectorId) {
   const { data } = await api.patch(`/pickups/${pickupId}`)
   return data
 }
 
 export async function verifyPickupOtp(pickupId, otp) {
   const { data } = await api.patch(`/pickups/${pickupId}/verify-otp`, { otp })
+  return data
+}
+
+export async function getPickupsPerInspector(inspectorId){
+  const { data } = await api.get(`/pickups/${inspectorId}`)
   return data
 }

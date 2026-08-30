@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { toggleInspectorAvailability } from '../api/inspector'
 import { getNotifications } from '../api/notifications'
-import { updatePickupStatus, verifyPickupOtp } from '../api/pickups'
+import { updatePickupStatus, verifyPickupOtp, getPickupsPerInspector } from '../api/pickups'
 import Alert from '../components/Alert'
 import {
   Bell,
@@ -40,6 +40,7 @@ export default function InspectorDashboard() {
 
 
   const [currentPickup, setCurrentPickup] = useState(null)
+  const [pickupHistory, setPickupHistory] = useState([])
   const [showOtpEntry, setShowOtpEntry] = useState(false)
   const [otpValue, setOtpValue] = useState('')
   const [otpError, setOtpError] = useState('')
@@ -66,6 +67,17 @@ export default function InspectorDashboard() {
     }
   }
 
+  const loadInspectorPickups = useCallback(async () => {
+    if (!inspector?._id) return
+    try {
+      const data = await getPickupsPerInspector(inspector._id)
+      setCurrentPickup(data.currentPickups?.[0] || null)   // one at a time → [0]
+      setPickupHistory(data.otherPickups || [])
+    } catch (err) {
+      console.error('Failed to load inspector pickups', err)
+    }
+  }, [inspector?._id])
+
   useEffect(() => {
     async function loadRecentPickups() {
       if (!isApproved) {
@@ -90,6 +102,11 @@ export default function InspectorDashboard() {
     loadRecentPickups()
   }, [isApproved])
 
+  useEffect(() => {
+    if (!isApproved) return
+    loadInspectorPickups()
+  }, [isApproved, loadInspectorPickups])
+
   const handleVerifyOtp = async () => {
     if (otpValue.length !== 6 || verifying) return
     console.log("otpvalue", otpValue);
@@ -101,6 +118,7 @@ export default function InspectorDashboard() {
       setCurrentPickup(null)
       setShowOtpEntry(false)
       setOtpValue('')
+      await loadInspectorPickups()          // <-- was setCurrentPickup(null)
       setTimeout(() => setDashboardMessage(''), 5000)
     } catch (err) {
       setOtpError(err.message)
@@ -110,9 +128,14 @@ export default function InspectorDashboard() {
   }
 
   const handleAcceptPickup = async (item) => {
+    if (!inspector?._id) return
+    if (currentPickup) {
+      setToggleError('You already have an active pickup. Complete it first.')
+      return
+    }
     const pickupId = item.pickup?._id
     try {
-      await updatePickupStatus(pickupId)          // pending -> assigned
+      await updatePickupStatus(pickupId, inspector?._id)          // pending -> assigned
       setRecentPickups((prev) => prev.filter((p) => p.pickup?._id !== pickupId))
       setCurrentPickup(item.pickup)               // show it as the active pickup
       setShowOtpEntry(false)
@@ -127,6 +150,7 @@ export default function InspectorDashboard() {
   const handleRemovePickupView = (notificationId) => {
     setRecentPickups((prev) => prev.filter((n) => n._id !== notificationId))
   }
+
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -369,6 +393,38 @@ export default function InspectorDashboard() {
           )}
         </div>
       </div>
+
+      {isApproved && pickupHistory.length > 0 && (
+        <div className="mt-6 glass rounded-2xl p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold">Pickup History</h2>
+          <div className="grid gap-3">
+            {pickupHistory.map((p) => (
+              <div key={p._id} className="flex items-start justify-between rounded-xl border border-white/5 bg-white/5 p-4">
+                <div>
+                  <div className="mb-1 flex flex-wrap gap-2">
+                    {p.wasteTypes?.map((type) => (
+                      <span key={type} className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="font-medium text-slate-200">
+                    {p.address?.street}, {p.address?.city}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {new Date(p.updatedAt || p.createdAt).toLocaleString(undefined, {
+                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <span className="inline-flex h-fit rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-300">
+                  {p.status?.replace('_', ' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Profile summary */}
       <div className="mt-6 glass rounded-2xl p-6">
