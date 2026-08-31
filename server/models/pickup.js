@@ -24,7 +24,7 @@ const pickUpSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ["pending", "assigned", "picked_up", "cancelled"],
+        enum: ["pending", "assigned", "picked_up", "cancelled", "delivered"],
         default: "pending",
     },
     notes: {
@@ -50,6 +50,20 @@ const pickUpSchema = new Schema({
     inspectorId: {
         type: Schema.Types.ObjectId,
         ref: "Inspector",
+        default: null
+    },
+    deliveryImageUrls: {
+        type: [String],
+        default: [],
+        validate: {
+            validator: function (images) {
+                return !images || images.length <= 3;
+            },
+            message: "You can upload a maximum of 3 images."
+        }
+    },
+    deliveredAt: {
+        type: Date,
         default: null
     },
 }, { timestamps: true })

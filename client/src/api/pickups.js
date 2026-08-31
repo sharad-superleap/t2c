@@ -34,7 +34,19 @@ export async function verifyPickupOtp(pickupId, otp) {
   return data
 }
 
-export async function getPickupsPerInspector(inspectorId){
+export async function getPickupsPerInspector(inspectorId) {
   const { data } = await api.get(`/pickups/${inspectorId}`)
+  return data
+}
+
+export async function updatePickupStatusToDelivered(pickupId, inspectorId, images) {
+  const formData = new FormData()
+  if (images?.length) {
+    images.forEach((file) => formData.append('images', file))
+  }
+
+  const { data } = await api.patch(`/pickups/delivered/${pickupId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }
