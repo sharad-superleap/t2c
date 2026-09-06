@@ -238,41 +238,76 @@ export const updatePickup = async (req, res) => {
 
 export const updatePickupStatusUsingOtp = async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const inspectorId = req.user.userId;
         const { pickupId } = req.params;
         const { otp } = req.body;
 
         if (!otp) return res.status(400).json({ success: false, message: "OTP is required." });
 
-        if (!userId) {
+        if (!inspectorId) {
             return res.status(401)
                 .json({ message: "Unauthorized." });
         }
 
         // Scope to THIS inspector's assigned pickup, and pull the creator's otp.
         const pickup = await Pickup.findOne(
-            { _id: pickupId, status: "assigned" }
+            { _id: pickupId, status: "assigned", inspectorId: inspectorId }
         ).populate("user", "otp");
-
-        // const pickup = await Pickup.findOneAndUpdate(
-        //     { _id: pickupId, status: "assigned" },
-        //     { $set: { status: "picked_up" } },
-        //     { new: true }
-        // );
 
         if (!pickup) {
             return res.status(404)
                 .json({ message: "Pickup not found." });
         }
 
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "A verification photo is required.",
+            });
+        }
+
+        if (!pickup.imageUrls?.length) {
+            return res.status(422).json({
+                success: false,
+                message: "No original image on file to compare against.",
+            });
+        }
+
+        // compare inspector's photo against the user's originals
+        let verdict;
+        try {
+            verdict = await compareWasteImages(pickup.imageUrls, req.files);
+        } catch (aiErr) {
+            console.error("Image comparison failed:", aiErr.message);
+            return res.status(502).json({
+                success: false,
+                message: "Could not verify the image right now. Try again.",
+            });
+        }
+
+        if (!verdict.match || verdict.confidence < 80) {
+            return res.status(422).json({
+                success: false,
+                message: "Image doesn't match the original pickup. Delivery not confirmed.",
+                verdict,
+            });
+        }
+
         if (String(pickup.user?.otp) !== String(otp)) {
             return res.status(400).json({ success: false, message: "Invalid OTP." });
         }
 
+        // store the inspector's proof photo too, then mark delivered
+        // const uploaded = await uploadToCloudinary(req.files[0].buffer, "pickup-delivery-proof");
+
+        const uploads = await Promise.all(
+            req.files.map((f) => uploadToCloudinary(f.buffer, "pickup-picked-up-proof"))
+        );
+
         // Guarded flip so it can only go assigned -> picked_up once.
         const updated = await Pickup.findOneAndUpdate(
             { _id: pickupId, status: "assigned" },
-            { $set: { status: "picked_up", inspectorId: userId } },
+            { $set: { status: "picked_up", inspectorId: inspectorId, pickedUpImageUrls: uploads.map((u) => u.secure_url), pickedUpAt: new Date() } },
             { new: true }
         );
 
@@ -292,6 +327,87 @@ export const updatePickupStatusUsingOtp = async (req, res) => {
             })
     }
 }
+
+export const verifyPickupImages = async (req, res) => {
+    try {
+        const inspectorId = req.user.userId;
+        const { pickupId } = req.params;
+
+        const pickup = await Pickup.findOne(
+            { _id: pickupId, status: "assigned", inspectorId }
+        );
+        if (!pickup) return res.status(404).json({ success: false, message: "Pickup not found." });
+
+        if (!req.files?.length) {
+            return res.status(400).json({ success: false, message: "A verification photo is required." });
+        }
+        if (!pickup.imageUrls?.length) {
+            return res.status(422).json({ success: false, message: "No original image on file to compare against." });
+        }
+
+        let verdict;
+        try {
+            verdict = await compareWasteImages(pickup.imageUrls, req.files);
+        } catch (aiErr) {
+            console.error("Image comparison failed:", aiErr.message);
+            return res.status(502).json({ success: false, message: "Could not verify the image right now. Try again." });
+        }
+
+        if (!verdict.match || verdict.confidence < 80) {
+            return res.status(422).json({
+                success: false,
+                message: "Image doesn't match the original pickup.",
+                verdict,
+            });
+        }
+
+        // passed — upload proof now so we don't ask for the photos again at OTP step
+        const uploads = await Promise.all(
+            req.files.map((f) => uploadToCloudinary(f.buffer, "pickup-picked-up-proof"))
+        );
+        pickup.pickedUpImageUrls = uploads.map((u) => u.secure_url);
+        await pickup.save();
+
+        return res.status(200).json({ success: true, message: "Images verified.", verdict });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal Server Error, ${err.message}` });
+    }
+};
+
+export const confirmPickupOtp = async (req, res) => {
+    try {
+        const inspectorId = req.user.userId;
+        const { pickupId } = req.params;
+        const { otp } = req.body;
+
+        if (!otp) return res.status(400).json({ success: false, message: "OTP is required." });
+
+        const pickup = await Pickup.findOne(
+            { _id: pickupId, status: "assigned", inspectorId }
+        ).populate("user", "otp");
+        if (!pickup) return res.status(404).json({ success: false, message: "Pickup not found." });
+
+        // guard: don't let OTP be confirmed unless images were already verified
+        if (!pickup.pickedUpImageUrls?.length) {
+            return res.status(409).json({ success: false, message: "Verify the pickup photo first." });
+        }
+
+        if (String(pickup.user?.otp) !== String(otp)) {
+            return res.status(400).json({ success: false, message: "Invalid OTP." });
+        }
+
+        const updated = await Pickup.findOneAndUpdate(
+            { _id: pickupId, status: "assigned" },
+            { $set: { status: "picked_up", pickedUpAt: new Date() } },
+            { new: true }
+        );
+        if (!updated) return res.status(409).json({ success: false, message: "Pickup already updated." });
+
+        return res.status(200).json({ success: true, message: "Pickup marked as picked up." });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: `Internal Server Error, ${err.message}` });
+    }
+};
 
 export const getPickupsPerInspector = async (req, res) => {
     try {

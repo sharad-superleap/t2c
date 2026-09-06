@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { toggleInspectorAvailability } from '../api/inspector'
 import { getNotifications } from '../api/notifications'
-import { updatePickupStatus, verifyPickupOtp, getPickupsPerInspector, updatePickupStatusToDelivered } from '../api/pickups'
+import { updatePickupStatus, verifyPickupImages, confirmPickupOtp, getPickupsPerInspector, updatePickupStatusToDelivered } from '../api/pickups'
 import Alert from '../components/Alert'
 import {
   Bell,
@@ -42,10 +42,14 @@ export default function InspectorDashboard() {
   const [currentPickup, setCurrentPickup] = useState(null)
   const [currentOngoingPickup, setCurrentOngoingPickup] = useState(null)
   const [pickupHistory, setPickupHistory] = useState([])
-  const [showOtpEntry, setShowOtpEntry] = useState(false)
-  const [otpValue, setOtpValue] = useState('')
-  const [otpError, setOtpError] = useState('')
-  const [verifying, setVerifying] = useState(false)
+  const [showPickupModal, setShowPickupModal] = useState(false)
+  const [pickupFiles, setPickupFiles] = useState([])
+  const [pickupStep, setPickupStep] = useState('photos')  // 'photos' | 'otp'
+  const [otpValue, setOtpValue] = useState('')             // keep this one
+  const [confirming, setConfirming] = useState(false)
+  const [pickupError, setPickupError] = useState('')
+  const [pickupVerdict, setPickupVerdict] = useState(null)
+  const [pickedUp, setPickedUp] = useState(false)
 
 
   const [showDeliverModal, setShowDeliverModal] = useState(false)
@@ -74,6 +78,52 @@ export default function InspectorDashboard() {
     } finally {
       setToggling(false)
     }
+  }
+
+  const handleVerifyImages = async () => {
+    if (!pickupFiles.length || confirming) return
+    setConfirming(true)
+    setPickupError('')
+    setPickupVerdict(null)
+    try {
+      const data = await verifyPickupImages(currentPickup._id, pickupFiles)
+      setPickupVerdict(data.verdict)      // show the passing match result
+      setPickupStep('otp')                // ONLY now does OTP appear
+    } catch (err) {
+      // 422 mismatch lands here — show verdict, stay on photo step to retry
+      setPickupVerdict(err.response?.data?.verdict || null)
+      setPickupError(err.response?.data?.message || err.message)
+      setPickupFiles([])
+    } finally {
+      setConfirming(false)
+    }
+  }
+
+  const handleConfirmOtp = async () => {
+    if (otpValue.length !== 6 || confirming) return
+    setConfirming(true)
+    setPickupError('')
+    try {
+      await confirmPickupOtp(currentPickup._id, otpValue)
+      setPickedUp(true)                   // success animation
+    } catch (err) {
+      setPickupError(err.response?.data?.message || err.message)
+      setOtpValue('')                     // wrong OTP → stay, re-enter
+    } finally {
+      setConfirming(false)
+    }
+  }
+
+  const closePickupModal = async () => {
+    const wasPickedUp = pickedUp
+    setShowPickupModal(false)
+    setPickupFiles([])
+    setPickupStep('photos')
+    setOtpValue('')
+    setPickupError('')
+    setPickupVerdict(null)
+    setPickedUp(false)
+    if (wasPickedUp) await loadInspectorPickups()   // assigned → picked_up moves it to Ongoing
   }
 
   const loadInspectorPickups = useCallback(async () => {
@@ -117,26 +167,6 @@ export default function InspectorDashboard() {
     loadInspectorPickups()
   }, [isApproved, loadInspectorPickups])
 
-  const handleVerifyOtp = async () => {
-    if (otpValue.length !== 6 || verifying) return
-    console.log("otpvalue", otpValue);
-    setOtpError('')
-    setVerifying(true)
-    try {
-      await verifyPickupOtp(currentPickup._id, otpValue)
-      setDashboardMessage('Pickup confirmed as picked up! 🎉')
-      setCurrentPickup(null)
-      setShowOtpEntry(false)
-      setOtpValue('')
-      await loadInspectorPickups()          // <-- was setCurrentPickup(null)
-      setTimeout(() => setDashboardMessage(''), 5000)
-    } catch (err) {
-      setOtpError(err.message)
-    } finally {
-      setVerifying(false)
-    }
-  }
-
   const handleAcceptPickup = async (item) => {
     if (!inspector?._id) return
     if (currentPickup) {
@@ -148,7 +178,7 @@ export default function InspectorDashboard() {
       await updatePickupStatus(pickupId, inspector?._id)          // pending -> assigned
       setRecentPickups((prev) => prev.filter((p) => p.pickup?._id !== pickupId))
       setCurrentPickup(item.pickup)               // show it as the active pickup
-      setShowOtpEntry(false)
+      // setShowOtpEntry(false)
       setOtpValue('')
       setDashboardMessage('Pickup assigned! Collect the waste, then enter the user OTP to confirm.')
       setTimeout(() => setDashboardMessage(''), 5000)
@@ -160,36 +190,6 @@ export default function InspectorDashboard() {
   const handleRemovePickupView = (notificationId) => {
     setRecentPickups((prev) => prev.filter((n) => n._id !== notificationId))
   }
-
-  // const handleDeliverSubmit = async () => {
-  //   if (!deliverFiles.length || delivering) return
-  //   setDelivering(true)
-  //   setDeliverError('')
-  //   setDeliverVerdict(null)
-  //   try {
-  //     const data = await updatePickupStatusToDelivered(
-  //       currentOngoingPickup._id,
-  //       inspector._id,
-  //       deliverFiles,
-  //     )
-  //     if (data.success) {
-  //       setDelivered(true)                 // triggers the success animation
-  //       await loadInspectorPickups()       // pickup leaves "ongoing", moves to history
-  //     } else {
-  //       // backend returns 422 with verdict on mismatch — axios throws, so this branch
-  //       // rarely hits; the catch below handles it. Kept for non-throwing setups.
-  //       setDeliverVerdict(data.verdict)
-  //       setDeliverError(data.message)
-  //     }
-  //   } catch (err) {
-  //     // mismatch (422) lands here — surface the verdict so they can retry
-  //     setDeliverVerdict(err.response?.data?.verdict || null)
-  //     setDeliverError(err.response?.data?.message || err.message)
-  //     setDeliverFiles([])                  // clear for the retry attempt
-  //   } finally {
-  //     setDelivering(false)
-  //   }
-  // }
 
   const handleDeliverSubmit = async () => {
     if (!deliverFiles.length || delivering) return
@@ -214,14 +214,6 @@ export default function InspectorDashboard() {
       setDelivering(false)
     }
   }
-
-  // const closeDeliverModal = () => {
-  //   setShowDeliverModal(false)
-  //   setDeliverFiles([])
-  //   setDeliverError('')
-  //   setDeliverVerdict(null)
-  //   setDelivered(false)
-  // }
 
   const closeDeliverModal = async () => {
     const wasDelivered = delivered
@@ -324,37 +316,113 @@ export default function InspectorDashboard() {
               {currentPickup.address?.street}, {currentPickup.address?.city}
             </p>
 
-            {!showOtpEntry ? (
-              <button
-                onClick={() => setShowOtpEntry(true)}
-                className="mt-4 rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-t2c-600"
-              >
-                Confirm Pickup
-              </button>
-            ) : (
-              <div className="mt-4">
-                <label className="text-xs uppercase tracking-wider text-slate-500">
-                  Enter user's 6-digit OTP
-                </label>
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otpValue}
-                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="______"
-                    className="w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center tracking-[0.3em] text-slate-100 focus:border-t2c-500 focus:outline-none"
-                  />
-                  <button
-                    onClick={handleVerifyOtp}
-                    disabled={otpValue.length !== 6 || verifying}
-                    className="rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-t2c-600 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {verifying ? 'Verifying...' : 'Verify & Complete'}
-                  </button>
+            <button
+              onClick={() => setShowPickupModal(true)}
+              className="mt-4 rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-t2c-600"
+            >
+              Confirm Pickup
+            </button>
+
+            {showPickupModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                <div className="w-full max-w-md glass rounded-2xl border border-white/10 p-6">
+                  {pickedUp ? (
+                    <div className="flex flex-col items-center py-6 text-center">
+                      <div className="relative mb-4">
+                        <span className="absolute inset-0 animate-ping rounded-full bg-t2c-500/40" />
+                        <CheckCircle2 className="relative h-16 w-16 text-t2c-400 animate-[pop_0.4s_ease-out]" />
+                      </div>
+                      <h3 className="font-display text-xl font-semibold">Picked up! 🎉</h3>
+                      <p className="mt-2 text-sm text-slate-400">Waste collected and verified. On to processing.</p>
+                      <button onClick={closePickupModal} className="mt-5 rounded-lg bg-t2c-500 px-5 py-2 text-sm font-medium text-white hover:bg-t2c-600">
+                        Close
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <h3 className="mb-1 font-display text-lg font-semibold">Confirm Pickup</h3>
+                      <p className="mb-4 text-sm text-slate-400">
+                        {pickupStep === 'photos'
+                          ? 'Photograph the waste at the location — it\'ll be matched against the original request.'
+                          : 'Enter the user\'s 6-digit OTP to complete pickup.'}
+                      </p>
+
+                      {pickupError && (
+                        <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
+                          <p className="text-sm text-red-300">{pickupError}</p>
+                          {pickupVerdict && (
+                            <p className="mt-1 text-xs text-red-400/80">
+                              {pickupVerdict.reason} (match confidence {pickupVerdict.confidence}%)
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {pickupStep === 'photos' ? (
+                        <>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => setPickupFiles(Array.from(e.target.files).slice(0, 3))}
+                            className="mb-2 block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-t2c-500/20 file:px-4 file:py-2 file:text-sm file:text-t2c-300 hover:file:bg-t2c-500/30"
+                          />
+                          {pickupFiles.length > 0 && (
+                            <p className="mb-3 text-xs text-slate-500">
+                              {pickupFiles.length} image{pickupFiles.length > 1 ? 's' : ''} selected
+                            </p>
+                          )}
+                          <div className="mt-4 flex justify-end gap-2">
+                            <button onClick={closePickupModal} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5">
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleVerifyImages}
+                              disabled={!pickupFiles.length || confirming}
+                              className="rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white hover:bg-t2c-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {confirming ? 'Verifying…' : 'Verify Photos'}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {pickupStep === 'otp' && pickupVerdict && (
+                            <div className="mb-3 rounded-lg border border-t2c-500/30 bg-t2c-500/10 p-3">
+                              <p className="text-sm text-t2c-300">Photo matched — {pickupVerdict.confidence}% confidence ✓</p>
+                            </div>
+                          )}
+
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            value={otpValue}
+                            onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="______"
+                            className="mb-3 w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center tracking-[0.3em] text-slate-100 focus:border-t2c-500 focus:outline-none"
+                          />
+                          <div className="mt-4 flex justify-end gap-2">
+                            <button
+                              onClick={() => { setPickupError(''); setPickupStep('photos') }}
+                              disabled={confirming}
+                              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 disabled:opacity-50"
+                            >
+                              Back
+                            </button>
+                            <button
+                              onClick={handleConfirmOtp}
+                              disabled={otpValue.length !== 6 || confirming}
+                              className="rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white hover:bg-t2c-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {confirming ? 'Confirming…' : 'Confirm Pickup'}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
-                {otpError && <p className="mt-2 text-sm text-red-400">{otpError}</p>}
               </div>
             )}
           </div>
