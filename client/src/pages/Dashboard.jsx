@@ -24,8 +24,6 @@ export default function Dashboard() {
   const totalPickups = pickups.length
   const completedPickups = pickups.filter((p) => p.status === 'picked_up').length
   const pendingPickups = pickups.filter((p) => p.status === 'pending' || p.status === 'assigned').length
-  const totalCoins = pickups.reduce((sum, p) => sum + estimateCoins(p.wasteTypes), 0)
-  const wasteKgEstimate = completedPickups * 2.5
 
   const recentPickups = [...pickups]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -81,10 +79,10 @@ export default function Dashboard() {
       )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Coins} label="TrashCoins Earned" value={totalCoins} subtext="Estimated from pickups" accent="coin" />
+        <StatCard icon={Coins} label="TrashCoins Earned" value={user?.trashCoins ?? 0} subtext="Earned from completed pickups" accent="coin" />
         <StatCard icon={Package} label="Total Pickups" value={totalPickups} subtext={`${pendingPickups} active`} accent="t2c" />
-        <StatCard icon={Recycle} label="Waste Recycled" value={`${wasteKgEstimate.toFixed(1)} kg`} subtext="Estimated weight" accent="blue" />
-        <StatCard icon={Leaf} label="CO₂ Saved" value={`${(wasteKgEstimate * 1.2).toFixed(1)} kg`} subtext="Approx. impact" accent="t2c" />
+        <StatCard icon={Recycle} label="Waste Recycled" value={`${Number(user?.wasteRecycled ?? 0).toFixed(1)} kg`} subtext="From completed pickups" accent="blue" />
+        <StatCard icon={Leaf} label="CO₂ Saved" value={`${Number(user?.co2Saved ?? 0).toFixed(1)} kg`} subtext="Approx. impact" accent="t2c" />
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2">

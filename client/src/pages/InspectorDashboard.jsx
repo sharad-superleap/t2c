@@ -318,7 +318,7 @@ export default function InspectorDashboard() {
 
             <button
               onClick={() => setShowPickupModal(true)}
-              className="mt-4 rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-t2c-600"
+              className="mt-4 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
             >
               Confirm Pickup
             </button>
@@ -329,12 +329,12 @@ export default function InspectorDashboard() {
                   {pickedUp ? (
                     <div className="flex flex-col items-center py-6 text-center">
                       <div className="relative mb-4">
-                        <span className="absolute inset-0 animate-ping rounded-full bg-t2c-500/40" />
-                        <CheckCircle2 className="relative h-16 w-16 text-t2c-400 animate-[pop_0.4s_ease-out]" />
+                        <span className="absolute inset-0 animate-ping rounded-full bg-blue-500/40" />
+                        <CheckCircle2 className="relative h-16 w-16 text-blue-400 animate-[pop_0.4s_ease-out]" />
                       </div>
                       <h3 className="font-display text-xl font-semibold">Picked up! 🎉</h3>
                       <p className="mt-2 text-sm text-slate-400">Waste collected and verified. On to processing.</p>
-                      <button onClick={closePickupModal} className="mt-5 rounded-lg bg-t2c-500 px-5 py-2 text-sm font-medium text-white hover:bg-t2c-600">
+                      <button onClick={closePickupModal} className="mt-5 rounded-lg bg-blue-500 px-5 py-2 text-sm font-medium text-white hover:bg-blue-600">
                         Close
                       </button>
                     </div>
@@ -365,7 +365,7 @@ export default function InspectorDashboard() {
                             accept="image/*"
                             multiple
                             onChange={(e) => setPickupFiles(Array.from(e.target.files).slice(0, 3))}
-                            className="mb-2 block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-t2c-500/20 file:px-4 file:py-2 file:text-sm file:text-t2c-300 hover:file:bg-t2c-500/30"
+                            className="mb-2 block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-500 file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-blue-600"
                           />
                           {pickupFiles.length > 0 && (
                             <p className="mb-3 text-xs text-slate-500">
@@ -379,7 +379,7 @@ export default function InspectorDashboard() {
                             <button
                               onClick={handleVerifyImages}
                               disabled={!pickupFiles.length || confirming}
-                              className="rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white hover:bg-t2c-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {confirming ? 'Verifying…' : 'Verify Photos'}
                             </button>
@@ -388,8 +388,8 @@ export default function InspectorDashboard() {
                       ) : (
                         <>
                           {pickupStep === 'otp' && pickupVerdict && (
-                            <div className="mb-3 rounded-lg border border-t2c-500/30 bg-t2c-500/10 p-3">
-                              <p className="text-sm text-t2c-300">Photo matched — {pickupVerdict.confidence}% confidence ✓</p>
+                            <div className="mb-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+                              <p className="text-sm text-white-300">Photo matched — {pickupVerdict.confidence}% confidence ✓</p>
                             </div>
                           )}
 
@@ -400,7 +400,7 @@ export default function InspectorDashboard() {
                             value={otpValue}
                             onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             placeholder="______"
-                            className="mb-3 w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center tracking-[0.3em] text-slate-100 focus:border-t2c-500 focus:outline-none"
+                            className="mb-3 w-40 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-center tracking-[0.3em] text-slate-100 focus:border-blue-500 focus:outline-none"
                           />
                           <div className="mt-4 flex justify-end gap-2">
                             <button
@@ -413,7 +413,7 @@ export default function InspectorDashboard() {
                             <button
                               onClick={handleConfirmOtp}
                               disabled={otpValue.length !== 6 || confirming}
-                              className="rounded-lg bg-t2c-500 px-4 py-2 text-sm font-medium text-white hover:bg-t2c-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {confirming ? 'Confirming…' : 'Confirm Pickup'}
                             </button>
@@ -498,8 +498,8 @@ export default function InspectorDashboard() {
                   // success animation
                   <div className="flex flex-col items-center py-6 text-center">
                     <div className="relative mb-4">
-                      <span className="absolute inset-0 animate-ping rounded-full bg-t2c-500/40" />
-                      <CheckCircle2 className="relative h-16 w-16 text-t2c-400 animate-[pop_0.4s_ease-out]" />
+                      <span className="absolute inset-0 animate-ping rounded-full bg-blue-500/40" />
+                      <CheckCircle2 className="relative h-16 w-16 text-blue-400 animate-[pop_0.4s_ease-out]" />
                     </div>
                     <h3 className="font-display text-xl font-semibold">Delivered! 🎉</h3>
                     <p className="mt-2 text-sm text-slate-400">
@@ -512,7 +512,7 @@ export default function InspectorDashboard() {
                     )}
                     <button
                       onClick={closeDeliverModal}
-                      className="mt-5 rounded-lg bg-t2c-500 px-5 py-2 text-sm font-medium text-white hover:bg-t2c-600"
+                      className="mt-5 rounded-lg bg-blue-500 px-5 py-2 text-sm font-medium text-white hover:bg-blue-600"
                     >
                       Close
                     </button>

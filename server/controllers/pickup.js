@@ -3,6 +3,7 @@ import { User } from "../models/user.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { analyzeWasteImages, compareWasteImages } from "../utils/geminiService.js";
 import pickupEmitter from "../utils/pickupEmitter.js";
+import { estimateCoins } from "../utils/coinsService.js";
 
 export const registerPickup = async (req, res) => {
     try {
@@ -402,6 +403,23 @@ export const confirmPickupOtp = async (req, res) => {
             { new: true }
         );
         if (!updated) return res.status(409).json({ success: false, message: "Pickup already updated." });
+
+        // award the user now that the pickup is confirmed picked up
+        const coins = estimateCoins(updated.wasteTypes);
+        const weightKg = updated.aiAnalysis?.estimatedWeightKg || 2.5;  // use AI weight if present, else fallback
+        const co2 = weightKg * 1.2;
+
+        await User.updateOne(
+            { _id: updated.user },
+            {
+                $inc: {
+                    trashCoins: coins,
+                    totalPickups: 1,
+                    wasteRecycled: weightKg,
+                    co2Saved: co2,
+                },
+            }
+        );
 
         return res.status(200).json({ success: true, message: "Pickup marked as picked up." });
     } catch (err) {
