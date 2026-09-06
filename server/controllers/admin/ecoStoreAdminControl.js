@@ -230,11 +230,12 @@ export const updateEcoStoreProduct = async (req, res) => {
 
         // new images (optional) — append to the current gallery
         if (req.files?.length) {
+            const existing = await EcoStoreProducts.findById(productId).select("imageUrls");
             const uploads = await Promise.all(
                 req.files.map((f) => uploadToCloudinary(f.buffer, "ecostore-products"))
             );
             const newUrls = uploads.map((u) => u.secure_url);
-            updates.imageUrls = [...(existing.imageUrls || []), ...newUrls];
+            updates.imageUrls = [...(existing?.imageUrls || []), ...newUrls].slice(0, 3); // respect the max-3 cap
         }
 
         if (Object.keys(updates).length === 0) {
