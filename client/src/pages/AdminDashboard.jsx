@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Shield, Truck, Users, Package } from 'lucide-react'
+import { Shield, Truck, Users, Package, Store } from 'lucide-react'
+import AdminEcoStore from './AdminEcoStore'
 import { useAuth } from '../context/AuthContext'
 import {
   fetchAllInspectors,
@@ -18,6 +19,7 @@ const SECTIONS = [
   { id: 'users', label: 'Users', icon: Users },
   { id: 'inspectors', label: 'Inspectors', icon: Truck },
   { id: 'pickups', label: 'Pickups', icon: Package },
+  { id: 'ecostore', label: 'EcoStore', icon: Store },
 ]
 
 const STATUS_FILTERS = [
@@ -167,7 +169,7 @@ export default function AdminDashboard() {
           Hi, {user?.firstName}! 👋
         </h1>
         <p className="mt-2 text-slate-400">
-          Platform overview — manage users, inspectors, and pickups.
+          Platform overview — manage users, inspectors, pickups, and EcoStore.
         </p>
       </div>
 
@@ -459,6 +461,7 @@ export default function AdminDashboard() {
           )}
         </div>
       )}
+      {section === 'ecostore' && <AdminEcoStore embedded />}
     </div>
   )
 }

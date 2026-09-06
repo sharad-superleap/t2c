@@ -1,3 +1,13 @@
+export function formatInr(amount, currency = 'INR') {
+  const value = Number(amount)
+  if (Number.isNaN(value)) return '—'
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 export function formatDate(dateString) {
   if (!dateString) return '—'
   return new Date(dateString).toLocaleDateString('en-IN', {

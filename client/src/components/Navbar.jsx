@@ -58,18 +58,29 @@ export default function Navbar() {
                 <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass}>
                   Dashboard
                 </NavLink>
+                <NavLink to="/store" className={inspectorNavLinkClass}>
+                  EcoStore
+                </NavLink>
                 <NavLink to="/inspector/profile" className={inspectorNavLinkClass}>
                   Profile
                 </NavLink>
               </>
             ) : isAdmin ? (
-              <NavLink to="/dashboard" className={navLinkClass}>
-                Dashboard
-              </NavLink>
+              <>
+                <NavLink to="/dashboard" className={navLinkClass}>
+                  Dashboard
+                </NavLink>
+                <NavLink to="/store" className={navLinkClass}>
+                  EcoStore
+                </NavLink>
+              </>
             ) : (
               <>
                 <NavLink to="/dashboard" className={navLinkClass}>
                   Dashboard
+                </NavLink>
+                <NavLink to="/store" className={navLinkClass}>
+                  EcoStore
                 </NavLink>
                 <NavLink to="/schedule" className={navLinkClass}>
                   Schedule Pickup
@@ -188,6 +199,9 @@ export default function Navbar() {
                   <NavLink to="/inspector/dashboard" className={inspectorNavLinkClass} onClick={() => setMobileOpen(false)}>
                     Dashboard
                   </NavLink>
+                  <NavLink to="/store" className={inspectorNavLinkClass} onClick={() => setMobileOpen(false)}>
+                    EcoStore
+                  </NavLink>
                   <NavLink to="/inspector/profile" className={inspectorNavLinkClass} onClick={() => setMobileOpen(false)}>
                     Profile
                   </NavLink>
@@ -204,6 +218,9 @@ export default function Navbar() {
                   <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                     Dashboard
                   </NavLink>
+                  <NavLink to="/store" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    EcoStore
+                  </NavLink>
                   <NavLink to="/profile" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                     Profile
                   </NavLink>
@@ -219,6 +236,9 @@ export default function Navbar() {
                 <>
                   <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                     Dashboard
+                  </NavLink>
+                  <NavLink to="/store" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    EcoStore
                   </NavLink>
                   <NavLink to="/schedule" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                     Schedule Pickup

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { toggleInspectorAvailability } from '../api/inspector'
 import { getNotifications } from '../api/notifications'
@@ -17,6 +18,7 @@ import {
   XCircle,
   Check,
   Trash2,
+  Store,
 } from 'lucide-react'
 import StatCard from '../components/StatCard'
 import { INSPECTOR_STATUS } from '../utils/constants'
@@ -269,6 +271,19 @@ export default function InspectorDashboard() {
           </p>
         )}
       </div>
+
+      <Link
+        to="/store"
+        className="group mb-8 flex items-center gap-4 rounded-2xl border border-coin-500/30 bg-gradient-to-br from-coin-500/15 to-blue-600/5 p-6 transition hover:border-coin-500/50"
+      >
+        <div className="rounded-xl bg-coin-500 p-3 text-slate-950 shadow-lg shadow-coin-500/20 transition group-hover:scale-105">
+          <Store className="h-6 w-6" />
+        </div>
+        <div>
+          <h3 className="font-display font-semibold">EcoStore</h3>
+          <p className="text-sm text-slate-400">Browse listed products — details on tap, checkout later.</p>
+        </div>
+      </Link>
 
       {/* Stats */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
