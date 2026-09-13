@@ -8,7 +8,7 @@ import {
   approveRejectPendingInspectors,
   fetchAllUsers,
   fetchAllPickups,
-  fetchPickupsAsPerStatus
+  fetchPickupsAsPerStatus,
 } from '../api/admin'
 import Alert from '../components/Alert'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -39,6 +39,7 @@ const PICKUP_STATUS_FILTERS = [
   { id: 'assigned', label: 'Assigned' },
   { id: 'picked_up', label: 'Picked Up' },
   { id: 'cancelled', label: 'Cancelled' },
+  { id: 'delivered', label: 'Delivered' },
 ]
 
 // build once from your existing states constant, with an "All" option prepended
@@ -68,6 +69,8 @@ export default function AdminDashboard() {
   const [pickups, setPickups] = useState([])
   const [pickupStatus, setPickupStatus] = useState('all')
   const [pickupState, setPickupState] = useState('all')
+  const [pickupInspector, setPickupInspector] = useState('all')
+  const [inspectorOptions, setInspectorOptions] = useState([])
 
 
   const [loading, setLoading] = useState(true)
@@ -106,17 +109,15 @@ export default function AdminDashboard() {
     }
   }, [])
 
-  const loadPickups = useCallback(async (status, state) => {
+  const loadPickups = useCallback(async (status, state, inspectorId) => {
     setLoading(true)
     setError('')
     try {
-      const data =
-        status === 'all' && state === 'all'
-          ? await fetchAllPickups()
-          : await fetchPickupsAsPerStatus(
-            status === 'all' ? undefined : status,
-            state === 'all' ? undefined : state,
-          )
+      const data = await fetchPickupsAsPerStatus(
+        status === 'all' ? undefined : status,
+        state === 'all' ? undefined : state,
+        inspectorId === 'all' ? undefined : inspectorId,
+      )
       setPickups(data.pickups || [])
     } catch (err) {
       setPickups([])
@@ -138,8 +139,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (section !== 'pickups') return
-    loadPickups(pickupStatus, pickupState)
-  }, [section, pickupStatus, pickupState, loadPickups])
+    loadPickups(pickupStatus, pickupState, pickupInspector)
+  }, [section, pickupStatus, pickupState, pickupInspector, loadPickups])
+
+  useEffect(() => {
+    if (section !== 'pickups') return
+    fetchAllInspectors()
+      .then((data) => setInspectorOptions(data.inspectors || []))
+      .catch(() => setInspectorOptions([]))
+  }, [section])
 
 
   const handleStatusChange = async (inspectorId, nextStatus, currentStatus) => {
@@ -281,6 +289,16 @@ export default function AdminDashboard() {
               >
                 {STATE_FILTERS.map((f) => (
                   <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+              <select
+                value={pickupInspector}
+                onChange={(e) => setPickupInspector(e.target.value)}
+                className="min-w-[11rem] rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 focus:border-t2c-500 focus:outline-none focus:ring-1 focus:ring-t2c-500"
+              >
+                <option value="all">All Inspectors</option>
+                {inspectorOptions.map((ins) => (
+                  <option key={ins._id} value={ins._id}>{ins.fullName}</option>
                 ))}
               </select>
             </div>

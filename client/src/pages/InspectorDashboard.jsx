@@ -709,30 +709,34 @@ export default function InspectorDashboard() {
         <div className="mt-6 glass rounded-2xl p-6">
           <h2 className="mb-4 font-display text-lg font-semibold">Pickup History</h2>
           <div className="grid gap-3">
-            {pickupHistory.map((p) => (
-              <div key={p._id} className="flex items-start justify-between rounded-xl border border-white/5 bg-white/5 p-4">
-                <div>
-                  <div className="mb-1 flex flex-wrap gap-2">
-                    {p.wasteTypes?.map((type) => (
-                      <span key={type} className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        {type}
-                      </span>
-                    ))}
+            {pickupHistory
+              .slice()                                                    // copy so we don't mutate state
+              .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+              .slice(0, 3) // latest 3 only
+              .map((p) => (
+                <div key={p._id} className="flex items-start justify-between rounded-xl border border-white/5 bg-white/5 p-4">
+                  <div>
+                    <div className="mb-1 flex flex-wrap gap-2">
+                      {p.wasteTypes?.map((type) => (
+                        <span key={type} className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="font-medium text-slate-200">
+                      {p.address?.street}, {p.address?.city}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(p.updatedAt || p.createdAt).toLocaleString(undefined, {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </p>
                   </div>
-                  <p className="font-medium text-slate-200">
-                    {p.address?.street}, {p.address?.city}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {new Date(p.updatedAt || p.createdAt).toLocaleString(undefined, {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    })}
-                  </p>
+                  <span className="inline-flex h-fit rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-300">
+                    {p.status?.replace('_', ' ')}
+                  </span>
                 </div>
-                <span className="inline-flex h-fit rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-xs font-medium capitalize text-slate-300">
-                  {p.status?.replace('_', ' ')}
-                </span>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}

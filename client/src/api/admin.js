@@ -27,11 +27,12 @@ export async function fetchAllPickups(){
   return data
 }
 
-export async function fetchPickupsAsPerStatus(status, state){
+export async function fetchPickupsAsPerStatus(status, state, inspectorId){
   const { data } = await api.get('/admin/pickups-status', {
     params: {
       status,
       state,
+      inspectorId
     },
   })
   return data
