@@ -17,17 +17,22 @@ export async function approveRejectPendingInspectors(inspectorId, status) {
   return data
 }
 
-export async function fetchAllUsers(){
+export async function fetchAllUsers() {
   const { data } = await api.get('/admin/users')
   return data
 }
 
-export async function fetchAllPickups(){
+export async function deleteUser(userIdToDelete) {
+  const { data } = await api.delete(`/admin/users/${userIdToDelete}`)
+  return data
+}
+
+export async function fetchAllPickups() {
   const { data } = await api.get('/admin/pickups')
   return data
 }
 
-export async function fetchPickupsAsPerStatus(status, state, inspectorId){
+export async function fetchPickupsAsPerStatus(status, state, inspectorId) {
   const { data } = await api.get('/admin/pickups-status', {
     params: {
       status,

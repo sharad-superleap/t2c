@@ -3,9 +3,9 @@ import express from "express";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleMiddleware.js";
 import { fetchInspectorsAsPerStatus, approveRejectPendingInspectors, fetchAllInspectors } from "../controllers/admin/inspectors.js";
-import { getAllUsers } from "../controllers/admin/users.js";
+import { deleteUser, getAllUsers } from "../controllers/admin/users.js";
 import { fetchAllPickups, fetchPickupsAsPerStatus } from "../controllers/admin/pickups.js";
-import {getAllProducts, getProductDetails } from "../controllers/ecoStore/ecostore.js";
+import { getAllProducts, getProductDetails } from "../controllers/ecoStore/ecostore.js";
 import { createEcoStoreProduct, deleteEcoStoreProduct, updateEcoStoreProduct } from "../controllers/admin/ecoStoreAdminControl.js";
 
 import upload from "../middlewares/multer.js";
@@ -28,6 +28,9 @@ router.route("/inspectors/:inspectorId")
 // Users
 router.route("/users")
     .get(getAllUsers);
+
+router.route("/users/:userIdToDelete")
+    .delete(authMiddleware, authorizeRoles("admin"), deleteUser)
 
 // Pickups
 router.route("/pickups")

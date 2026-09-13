@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Shield, Truck, Users, Package, Store } from 'lucide-react'
+import { Shield, Truck, Users, Package, Store, Trash2 } from 'lucide-react'
 import AdminEcoStore from './AdminEcoStore'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -9,6 +9,7 @@ import {
   fetchAllUsers,
   fetchAllPickups,
   fetchPickupsAsPerStatus,
+  deleteUser
 } from '../api/admin'
 import Alert from '../components/Alert'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -64,6 +65,7 @@ export default function AdminDashboard() {
   const [section, setSection] = useState('inspectors')
   const [inspectors, setInspectors] = useState([])
   const [users, setUsers] = useState([])
+  const [userToDelete, setUserToDelete] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
 
   const [pickups, setPickups] = useState([])
@@ -77,6 +79,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   const loadInspectors = useCallback(async (filter) => {
     setLoading(true)
@@ -166,6 +169,25 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return
+    const id = userToDelete._id
+    setDeletingId(id)
+    setError('')
+    setSuccess('')
+    try {
+      const data = await deleteUser(id)
+      setSuccess(data.message || 'User deleted.')
+      setUsers((prev) => prev.filter((u) => u._id !== id))
+      setUserToDelete(null)          // close the modal on success
+    } catch (err) {
+      setError(err.message)
+      setUserToDelete(null)          // close so they can see the error alert
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-8">
@@ -214,6 +236,12 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {success && (
+            <div className="mb-4">
+              <Alert type="success" message={success} onClose={() => setSuccess('')} />
+            </div>
+          )}
+
           {loading ? (
             <div className="flex min-h-[30vh] items-center justify-center">
               <LoadingSpinner size="lg" />
@@ -236,6 +264,7 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 font-medium">State</th>
                       <th className="px-4 py-3 font-medium">Pincode</th>
                       <th className="px-4 py-3 font-medium">Coins</th>
+                      <th className="px-4 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -256,6 +285,17 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 text-slate-400">{u?.address?.state}</td>
                         <td className="px-4 py-3 text-slate-400">{u?.address?.pincode}</td>
                         <td className="px-4 py-3 text-slate-400">{u?.trashCoins}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => setUserToDelete(u)}
+                            disabled={deletingId === u._id}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Delete user"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingId === u._id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -480,6 +520,42 @@ export default function AdminDashboard() {
         </div>
       )}
       {section === 'ecostore' && <AdminEcoStore embedded />}
+
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-sm glass rounded-2xl border border-white/10 p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-red-500/10 p-2.5 text-red-400">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <h3 className="font-display text-lg font-semibold">Delete user?</h3>
+            </div>
+            <p className="mb-5 text-sm text-slate-400">
+              This will permanently delete{' '}
+              <span className="font-medium text-slate-200">
+                {userToDelete.firstName} {userToDelete.lastName}
+              </span>{' '}
+              ({userToDelete.email}). This can't be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setUserToDelete(null)}
+                disabled={deletingId === userToDelete._id}
+                className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deletingId === userToDelete._id}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deletingId === userToDelete._id ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
