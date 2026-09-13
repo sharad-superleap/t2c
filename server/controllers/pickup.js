@@ -172,12 +172,12 @@ export const deletePickup = async (req, res) => {
 
         const diff = now - createdTime;
 
-        const THREE_MINUTES_IN_MS = 3 * 60 * 1000;
+        const TEN_SECONDS_IN_MS = 10 * 1000;
 
-        if (diff > THREE_MINUTES_IN_MS) {
+        if (diff > TEN_SECONDS_IN_MS) {
             return res.status(403).json({
                 success: false,
-                message: `You can only delete within 3 minutes of creation.`
+                message: `You can only delete within 10 seconds of creation.`
             });
         }
 
@@ -237,98 +237,6 @@ export const updatePickup = async (req, res) => {
             })
     }
 }
-
-// export const updatePickupStatusUsingOtp = async (req, res) => {
-//     try {
-//         const inspectorId = req.user.userId;
-//         const { pickupId } = req.params;
-//         const { otp } = req.body;
-
-//         if (!otp) return res.status(400).json({ success: false, message: "OTP is required." });
-
-//         if (!inspectorId) {
-//             return res.status(401)
-//                 .json({ message: "Unauthorized." });
-//         }
-
-//         // Scope to THIS inspector's assigned pickup, and pull the creator's otp.
-//         const pickup = await Pickup.findOne(
-//             { _id: pickupId, status: "assigned", inspectorId: inspectorId }
-//         ).populate("user", "otp");
-
-//         if (!pickup) {
-//             return res.status(404)
-//                 .json({ message: "Pickup not found." });
-//         }
-
-//         if (!req.files || req.files.length === 0) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "A verification photo is required.",
-//             });
-//         }
-
-//         if (!pickup.imageUrls?.length) {
-//             return res.status(422).json({
-//                 success: false,
-//                 message: "No original image on file to compare against.",
-//             });
-//         }
-
-//         // compare inspector's photo against the user's originals
-//         let verdict;
-//         try {
-//             verdict = await compareWasteImages(pickup.imageUrls, req.files);
-//         } catch (aiErr) {
-//             console.error("Image comparison failed:", aiErr.message);
-//             return res.status(502).json({
-//                 success: false,
-//                 message: "Could not verify the image right now. Try again.",
-//             });
-//         }
-
-//         if (!verdict.match || verdict.confidence < 80) {
-//             return res.status(422).json({
-//                 success: false,
-//                 message: "Image doesn't match the original pickup. Delivery not confirmed.",
-//                 verdict,
-//             });
-//         }
-
-//         if (String(pickup.user?.otp) !== String(otp)) {
-//             return res.status(400).json({ success: false, message: "Invalid OTP." });
-//         }
-
-//         // store the inspector's proof photo too, then mark delivered
-//         // const uploaded = await uploadToCloudinary(req.files[0].buffer, "pickup-delivery-proof");
-
-//         const uploads = await Promise.all(
-//             req.files.map((f) => uploadToCloudinary(f.buffer, "pickup-picked-up-proof"))
-//         );
-
-//         // Guarded flip so it can only go assigned -> picked_up once.
-//         const updated = await Pickup.findOneAndUpdate(
-//             { _id: pickupId, status: "assigned" },
-//             { $set: { status: "picked_up", inspectorId: inspectorId, pickedUpImageUrls: uploads.map((u) => u.secure_url), pickedUpAt: new Date() } },
-//             { new: true }
-//         );
-
-//         if (!updated) return res.status(409).json({ success: false, message: "Pickup already updated." });
-
-//         return res.status(200)
-//             .json({
-//                 success: true,
-//                 message: `Pickup marked as picked up.`
-//             })
-
-//     } catch (err) {
-//         return res.status(500)
-//             .json({
-//                 success: false,
-//                 message: `Internal Server Error, ${err.message}`
-//             })
-//     }
-// }
 
 export const verifyPickupImages = async (req, res) => {
     try {

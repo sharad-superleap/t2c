@@ -54,6 +54,6 @@ export function canDeletePickup(createdAt) {
 
 export function deleteTimeRemaining(createdAt) {
   if (!createdAt) return 0
-  const remaining = 3 * 60 * 1000 - (Date.now() - new Date(createdAt).getTime())
+  const remaining = 10 * 1000 - (Date.now() - new Date(createdAt).getTime())
   return Math.max(0, Math.ceil(remaining / 1000))
 }
