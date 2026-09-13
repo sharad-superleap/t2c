@@ -9,3 +9,8 @@ export async function getProductDetails(productId) {
   const { data } = await api.get(`/products/${productId}`)
   return data
 }
+
+export async function purchaseProduct(productId, quantity) {
+  const { data } = await api.post(`/products/${productId}`, { quantity })
+  return data
+}

@@ -1,5 +1,5 @@
 import express from "express";
-import { deletePickup, getPickUpsHistoryByUserId, registerPickup, updatePickup, updatePickupStatusUsingOtp, getPickupsPerInspector, updatePickupStatusToDelivered, verifyPickupImages, confirmPickupOtp } from "../controllers/pickup.js";
+import { deletePickup, getPickUpsHistoryByUserId, registerPickup, updatePickup, getPickupsPerInspector, updatePickupStatusToDelivered, verifyPickupImages, confirmPickupOtp } from "../controllers/pickup.js";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/multer.js";
 

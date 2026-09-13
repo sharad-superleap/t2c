@@ -4,6 +4,7 @@ import { uploadToCloudinary } from "../utils/cloudinary.js";
 import { analyzeWasteImages, compareWasteImages } from "../utils/geminiService.js";
 import pickupEmitter from "../utils/pickupEmitter.js";
 import { estimateCoins } from "../utils/coinsService.js";
+import { Inspector } from "../models/inspector.js";
 
 export const registerPickup = async (req, res) => {
     try {
@@ -237,97 +238,97 @@ export const updatePickup = async (req, res) => {
     }
 }
 
-export const updatePickupStatusUsingOtp = async (req, res) => {
-    try {
-        const inspectorId = req.user.userId;
-        const { pickupId } = req.params;
-        const { otp } = req.body;
+// export const updatePickupStatusUsingOtp = async (req, res) => {
+//     try {
+//         const inspectorId = req.user.userId;
+//         const { pickupId } = req.params;
+//         const { otp } = req.body;
 
-        if (!otp) return res.status(400).json({ success: false, message: "OTP is required." });
+//         if (!otp) return res.status(400).json({ success: false, message: "OTP is required." });
 
-        if (!inspectorId) {
-            return res.status(401)
-                .json({ message: "Unauthorized." });
-        }
+//         if (!inspectorId) {
+//             return res.status(401)
+//                 .json({ message: "Unauthorized." });
+//         }
 
-        // Scope to THIS inspector's assigned pickup, and pull the creator's otp.
-        const pickup = await Pickup.findOne(
-            { _id: pickupId, status: "assigned", inspectorId: inspectorId }
-        ).populate("user", "otp");
+//         // Scope to THIS inspector's assigned pickup, and pull the creator's otp.
+//         const pickup = await Pickup.findOne(
+//             { _id: pickupId, status: "assigned", inspectorId: inspectorId }
+//         ).populate("user", "otp");
 
-        if (!pickup) {
-            return res.status(404)
-                .json({ message: "Pickup not found." });
-        }
+//         if (!pickup) {
+//             return res.status(404)
+//                 .json({ message: "Pickup not found." });
+//         }
 
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: "A verification photo is required.",
-            });
-        }
+//         if (!req.files || req.files.length === 0) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "A verification photo is required.",
+//             });
+//         }
 
-        if (!pickup.imageUrls?.length) {
-            return res.status(422).json({
-                success: false,
-                message: "No original image on file to compare against.",
-            });
-        }
+//         if (!pickup.imageUrls?.length) {
+//             return res.status(422).json({
+//                 success: false,
+//                 message: "No original image on file to compare against.",
+//             });
+//         }
 
-        // compare inspector's photo against the user's originals
-        let verdict;
-        try {
-            verdict = await compareWasteImages(pickup.imageUrls, req.files);
-        } catch (aiErr) {
-            console.error("Image comparison failed:", aiErr.message);
-            return res.status(502).json({
-                success: false,
-                message: "Could not verify the image right now. Try again.",
-            });
-        }
+//         // compare inspector's photo against the user's originals
+//         let verdict;
+//         try {
+//             verdict = await compareWasteImages(pickup.imageUrls, req.files);
+//         } catch (aiErr) {
+//             console.error("Image comparison failed:", aiErr.message);
+//             return res.status(502).json({
+//                 success: false,
+//                 message: "Could not verify the image right now. Try again.",
+//             });
+//         }
 
-        if (!verdict.match || verdict.confidence < 80) {
-            return res.status(422).json({
-                success: false,
-                message: "Image doesn't match the original pickup. Delivery not confirmed.",
-                verdict,
-            });
-        }
+//         if (!verdict.match || verdict.confidence < 80) {
+//             return res.status(422).json({
+//                 success: false,
+//                 message: "Image doesn't match the original pickup. Delivery not confirmed.",
+//                 verdict,
+//             });
+//         }
 
-        if (String(pickup.user?.otp) !== String(otp)) {
-            return res.status(400).json({ success: false, message: "Invalid OTP." });
-        }
+//         if (String(pickup.user?.otp) !== String(otp)) {
+//             return res.status(400).json({ success: false, message: "Invalid OTP." });
+//         }
 
-        // store the inspector's proof photo too, then mark delivered
-        // const uploaded = await uploadToCloudinary(req.files[0].buffer, "pickup-delivery-proof");
+//         // store the inspector's proof photo too, then mark delivered
+//         // const uploaded = await uploadToCloudinary(req.files[0].buffer, "pickup-delivery-proof");
 
-        const uploads = await Promise.all(
-            req.files.map((f) => uploadToCloudinary(f.buffer, "pickup-picked-up-proof"))
-        );
+//         const uploads = await Promise.all(
+//             req.files.map((f) => uploadToCloudinary(f.buffer, "pickup-picked-up-proof"))
+//         );
 
-        // Guarded flip so it can only go assigned -> picked_up once.
-        const updated = await Pickup.findOneAndUpdate(
-            { _id: pickupId, status: "assigned" },
-            { $set: { status: "picked_up", inspectorId: inspectorId, pickedUpImageUrls: uploads.map((u) => u.secure_url), pickedUpAt: new Date() } },
-            { new: true }
-        );
+//         // Guarded flip so it can only go assigned -> picked_up once.
+//         const updated = await Pickup.findOneAndUpdate(
+//             { _id: pickupId, status: "assigned" },
+//             { $set: { status: "picked_up", inspectorId: inspectorId, pickedUpImageUrls: uploads.map((u) => u.secure_url), pickedUpAt: new Date() } },
+//             { new: true }
+//         );
 
-        if (!updated) return res.status(409).json({ success: false, message: "Pickup already updated." });
+//         if (!updated) return res.status(409).json({ success: false, message: "Pickup already updated." });
 
-        return res.status(200)
-            .json({
-                success: true,
-                message: `Pickup marked as picked up.`
-            })
+//         return res.status(200)
+//             .json({
+//                 success: true,
+//                 message: `Pickup marked as picked up.`
+//             })
 
-    } catch (err) {
-        return res.status(500)
-            .json({
-                success: false,
-                message: `Internal Server Error, ${err.message}`
-            })
-    }
-}
+//     } catch (err) {
+//         return res.status(500)
+//             .json({
+//                 success: false,
+//                 message: `Internal Server Error, ${err.message}`
+//             })
+//     }
+// }
 
 export const verifyPickupImages = async (req, res) => {
     try {
@@ -421,7 +422,17 @@ export const confirmPickupOtp = async (req, res) => {
             }
         );
 
-        return res.status(200).json({ success: true, message: "Pickup marked as picked up." });
+
+        // increase the totalPickup count for inspector as well.
+        const updatedInspector = await Inspector.findOneAndUpdate(
+            { _id: inspectorId },
+            { $inc: { "stats.totalPickups": 1 } },
+        )
+
+        return res.status(200).json({
+            success: true, 
+            message: "Pickup marked as picked up."
+        });
     } catch (err) {
         return res.status(500).json({ success: false, message: `Internal Server Error, ${err.message}` });
     }
@@ -543,6 +554,20 @@ export const updatePickupStatusToDelivered = async (req, res) => {
 
         const check = await Pickup.findById(pickupId);
         console.log("immediately after save, status =", check.status);
+
+        const BASE_PAYOUT = 10;
+        const PER_KG_RATE = 5;
+
+        const weightKg = pickup.aiAnalysis?.estimatedWeightKg || 0;
+        const payout = BASE_PAYOUT + weightKg * PER_KG_RATE;
+
+        await Inspector.findOneAndUpdate({_id: inspectorId},
+            {
+                $inc : {
+                    "stats.totalEarnings": payout,
+                    "stats.completedPickups": 1,
+                }}
+        );
 
         return res.status(200).json({
             success: true,
